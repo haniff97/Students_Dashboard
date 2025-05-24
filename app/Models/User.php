@@ -57,4 +57,8 @@ class User extends Authenticatable
             ->map(fn (string $name) => Str::of($name)->substr(0, 1))
             ->implode('');
     }
+        public function canAccessPanel(\Filament\Panel $panel): bool
+    {
+        return true; // You can replace this with a role check like $this->is_admin
+    }
 }
