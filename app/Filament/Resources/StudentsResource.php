@@ -12,7 +12,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Tables\Columns\TextColumn;
 class StudentsResource extends Resource
 {
     protected static ?string $model = Students::class;
@@ -23,7 +25,24 @@ class StudentsResource extends Resource
     {
         return $form
             ->schema([
-                //
+            TextInput::make('name')->required(),
+            TextInput::make('class')->required(),
+            Select::make('subject')
+                ->label('Subject')
+                ->options(function () {
+                    return Students::query()
+                        ->select('subject')
+                        ->distinct()
+                        ->pluck('subject', 'subject')
+                        ->toArray();
+                })
+                ->searchable()
+                ->required(),
+            TextInput::make('marks')->numeric(),
+            TextInput::make('grade')->required(),
+            TextInput::make('year')->numeric(),
+
+
             ]);
     }
 
@@ -31,7 +50,12 @@ class StudentsResource extends Resource
     {
         return $table
             ->columns([
-                //
+                TextColumn::MAKE('name'),
+                TextColumn::MAKE('class'),
+                TextColumn::MAKE('subject'),
+                TextColumn::MAKE('marks'),
+                TextColumn::MAKE('grade'),
+                TextColumn::MAKE('year')
             ])
             ->filters([
                 //
