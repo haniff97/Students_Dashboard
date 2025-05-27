@@ -2,8 +2,13 @@
 
 namespace App\Filament\Resources\StudentsResource\Pages;
 
+use App\Filament\Exports\StudentsExporter;
+use App\Filament\Imports\StudentImporter;
 use App\Filament\Resources\StudentsResource;
 use Filament\Actions;
+use Filament\Actions\ExportAction;
+use Filament\Actions\Exports\Enums\ExportFormat;
+use Filament\Actions\ImportAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListStudents extends ListRecords
@@ -14,6 +19,21 @@ class ListStudents extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            
+            ExportAction::make()
+                ->button()
+                ->color(color: 'primary')
+                ->outlined()
+                ->exporter(StudentsExporter::class)
+                ->formats([
+                    ExportFormat::Csv,
+                ]),
+
+            ImportAction::make()
+                ->button()
+                ->color(color: 'primary')
+                ->outlined()
+                ->importer(StudentImporter::class),
         ];
     }
 }
