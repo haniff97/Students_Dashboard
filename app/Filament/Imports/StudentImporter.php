@@ -22,7 +22,7 @@ class StudentImporter extends Importer
             ImportColumn::make('subject')
                 ->label('SUBJECT')
                 ->requiredMapping(),
-                
+
             ImportColumn::make('class')
                 ->label('CLASS')
                 ->requiredMapping(),
@@ -54,6 +54,10 @@ class StudentImporter extends Importer
                 ->label('UASA (G)')
                 ->rules(['nullable', 'string', 'max:2']),
 
+            ImportColumn::make('year')
+                ->label('YEAR')
+                ->numeric()
+                ->rules(['nullable', 'numeric', 'min:2000', 'max:2099']),
 
         ];
     }
