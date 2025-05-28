@@ -38,8 +38,16 @@ class StudentsResource extends Resource
                 })
                 ->searchable()
                 ->required(),
-            TextInput::make('marks')->numeric(),
-            TextInput::make('grade')->required(),
+                TextInput::make('tov_m')->label('TOV (M)')->numeric(),
+                TextInput::make('tov_g')->label('TOV (G)'),
+                TextInput::make('pa1_m')->label('PA1 (M)')->numeric(),
+                TextInput::make('pa1_g')->label('PA1 (G)'),
+                TextInput::make('ppt_m')->label('PPT (M)')->numeric(),
+                TextInput::make('ppt_g')->label('PPT (G)'),
+                TextInput::make('uasa_m')->label('UASA (M)')->numeric(),
+                TextInput::make('uasa_g')->label('UASA (G)'),
+                TextInput::make('etr_m')->label('ETR (M)')->numeric(),
+                TextInput::make('etr_g')->label('ETR (G)'),
             TextInput::make('year')->numeric(),
 
 
@@ -53,8 +61,16 @@ class StudentsResource extends Resource
                 TextColumn::MAKE('name'),
                 TextColumn::MAKE('class'),
                 TextColumn::MAKE('subject'),
-                TextColumn::MAKE('marks'),
-                TextColumn::MAKE('grade'),
+                TextColumn::make('tov_m')->label('TOV (M)'),
+                TextColumn::make('tov_g')->label('TOV (G)'),
+                TextColumn::make('pa1_m')->label('PA1 (M)'),
+                TextColumn::make('pa1_g')->label('PA1 (G)'),
+                TextColumn::make('ppt_m')->label('PPT (M)'),
+                TextColumn::make('ppt_g')->label('PPT (G)'),
+                TextColumn::make('uasa_m')->label('UASA (M)'),
+                TextColumn::make('uasa_g')->label('UASA (G)'),
+                TextColumn::make('etr_m')->label('ETR (M)'),
+                TextColumn::make('etr_g')->label('ETR (G)'),
                 TextColumn::MAKE('year')
             ])
             ->filters([

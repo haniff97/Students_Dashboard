@@ -15,24 +15,46 @@ class StudentImporter extends Importer
     {
         return [
             ImportColumn::make('name')
+                ->label('NAMA')
                 ->requiredMapping()
                 ->rules(['required', 'max:255']),
 
-            ImportColumn::make('code')
-                ->label('Code')
+            ImportColumn::make('subject')
+                ->label('SUBJECT')
+                ->requiredMapping(),
+                
+            ImportColumn::make('class')
+                ->label('CLASS')
                 ->requiredMapping(),
 
-            ImportColumn::make('quantity')
-                ->label('Quantity')
-                ->requiredMapping(),
-
-            ImportColumn::make('price')
+            ImportColumn::make('pa1_m')
+                ->label('PA1 (M)')
                 ->numeric()
-                ->rules(['numeric', 'min:0']),
-        
-            ImportColumn::make('safety_stock')
-                ->label('Safety Stock')
-                ->requiredMapping(),
+                ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
+
+            ImportColumn::make('pa1_g')
+                ->label('PA1 (G)')
+                ->rules(['nullable', 'string', 'max:2']),
+
+            ImportColumn::make('ppt_m')
+                ->label('PPT (M)')
+                ->numeric()
+                ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
+
+            ImportColumn::make('ppt_g')
+                ->label('PPT (G)')
+                ->rules(['nullable', 'string', 'max:2']),
+
+            ImportColumn::make('uasa_m')
+                ->label('UASA (M)')
+                ->numeric()
+                ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
+
+            ImportColumn::make('uasa_g')
+                ->label('UASA (G)')
+                ->rules(['nullable', 'string', 'max:2']),
+
+
         ];
     }
 
