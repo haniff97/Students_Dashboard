@@ -10,6 +10,10 @@ use Filament\Actions\Imports\Models\Import;
 class StudentImporter extends Importer
 {
     protected static ?string $model = Students::class;
+    
+    // Skip the imports logging table
+    protected static bool $skipImportLogging = true;
+protected static bool $ignoreRecordOnFailure = true;
 
     public static function getColumns(): array
     {
@@ -58,18 +62,23 @@ class StudentImporter extends Importer
                 ->label('YEAR')
                 ->numeric()
                 ->rules(['nullable', 'numeric', 'min:2000', 'max:2099']),
-
         ];
     }
-
     public function resolveRecord(): ?Students
     {
-        // return Student::firstOrNew([
-        //     // Update existing records, matching them by `$this->data['column_name']`
-        //     'email' => $this->data['email'],
-        // ]);
-
-        return new Students();
+        return Students::firstOrNew([
+            "name" => $this->data['name'],
+            "class" => $this->data['class'],
+            "subject" => $this->data['subject'],
+            "year" => $this->data['year']
+        ], [
+            'pa1_m' => $this->data['pa1_m'], 
+            'pa1_g' => $this->data['pa1_g'],
+            'ppt_m' => $this->data['ppt_m'],
+            'ppt_g' => $this->data['ppt_g'],
+            'uasa_m' => $this->data['uasa_m'],
+            'uasa_g' => $this->data['uasa_g'],              
+        ]);
     }
 
     public static function getCompletedNotificationBody(Import $import): string
