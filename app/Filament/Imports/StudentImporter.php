@@ -11,74 +11,79 @@ class StudentImporter extends Importer
 {
     protected static ?string $model = Students::class;
     
-    // Skip the imports logging table
     protected static bool $skipImportLogging = true;
-protected static bool $ignoreRecordOnFailure = true;
-
+    
     public static function getColumns(): array
     {
         return [
-            ImportColumn::make('name')
-                ->label('NAMA')
+            ImportColumn::make('nama')
+                ->label('name')
                 ->requiredMapping()
                 ->rules(['required', 'max:255']),
-
-            ImportColumn::make('subject')
-                ->label('SUBJECT')
-                ->requiredMapping(),
-
+                
             ImportColumn::make('class')
-                ->label('CLASS')
-                ->requiredMapping(),
-
-            ImportColumn::make('pa1_m')
-                ->label('PA1 (M)')
+                ->requiredMapping()
+                ->rules(['required', 'max:255']),
+                
+            ImportColumn::make('subject')
+                ->rules(['max:255']),
+                
+            ImportColumn::make('pa1 (m)')
+                ->label('pat_m') // Mapping to your database column
                 ->numeric()
                 ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-
-            ImportColumn::make('pa1_g')
-                ->label('PA1 (G)')
-                ->rules(['nullable', 'string', 'max:2']),
-
-            ImportColumn::make('ppt_m')
-                ->label('PPT (M)')
+                
+            ImportColumn::make('pa1 (g)')
+                ->label('pat_g')
+                ->rules(['max:11']),
+                
+            ImportColumn::make('ppt (m)')
+                ->label('ppt_m')
                 ->numeric()
                 ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-
-            ImportColumn::make('ppt_g')
-                ->label('PPT (G)')
-                ->rules(['nullable', 'string', 'max:2']),
-
-            ImportColumn::make('uasa_m')
-                ->label('UASA (M)')
+                
+            ImportColumn::make('ppt (g)')
+                ->label('ppt_g')
+                ->rules(['max:11']),
+                
+            ImportColumn::make('uasa (m)')
+                ->label('uasa_m')
                 ->numeric()
                 ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-
-            ImportColumn::make('uasa_g')
-                ->label('UASA (G)')
-                ->rules(['nullable', 'string', 'max:2']),
-
+                
+            ImportColumn::make('uasa (g)')
+                ->label('uasa_g')
+                ->rules(['max:11']),
+                
             ImportColumn::make('year')
-                ->label('YEAR')
                 ->numeric()
-                ->rules(['nullable', 'numeric', 'min:2000', 'max:2099']),
+                ->rules(['nullable', 'integer'])
         ];
     }
+
     public function resolveRecord(): ?Students
     {
-        return Students::firstOrNew([
-            "name" => $this->data['name'],
-            "class" => $this->data['class'],
-            "subject" => $this->data['subject'],
-            "year" => $this->data['year']
-        ], [
-            'pa1_m' => $this->data['pa1_m'], 
-            'pa1_g' => $this->data['pa1_g'],
-            'ppt_m' => $this->data['ppt_m'],
-            'ppt_g' => $this->data['ppt_g'],
-            'uasa_m' => $this->data['uasa_m'],
-            'uasa_g' => $this->data['uasa_g'],              
-        ]);
+        // Handle empty values
+        $pat_m = empty($this->data['pa1 (m)']) ? null : $this->data['pa1 (m)'];
+        $ppt_m = empty($this->data['ppt (m)']) ? null : $this->data['ppt (m)'];
+        $uasa_m = empty($this->data['uasa (m)']) ? null : $this->data['uasa (m)'];
+        
+        return Students::updateOrCreate(
+            [
+                'name' => $this->data['nama'],
+                'class' => $this->data['class'],
+                'subject' => $this->data['subject'],
+                'year' => $this->data['year']
+            ],
+            [
+                'pat_m' => $pat_m,
+                'pat_g' => $this->data['pa1 (g)'],
+                'ppt_m' => $ppt_m,
+                'ppt_g' => $this->data['ppt (g)'],
+                'uasa_m' => $uasa_m,
+                'uasa_g' => $this->data['uasa (g)']
+            ]
+        );
     }
 
     public static function getCompletedNotificationBody(Import $import): string

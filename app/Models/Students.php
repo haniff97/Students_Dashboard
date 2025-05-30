@@ -11,12 +11,21 @@ class Students extends Model
 
     protected $fillable = [
         'name',
-        'email',
-        'subject',
         'class',
-        'age',
-        'marks',
-        'grade',
-        'year',
+        'subject',
+        'pat_m',
+        'pat_g',
+        'ppt_m',
+        'ppt_g',
+        'uasa_m',
+        'uasa_g',
+        'year'
+    ];
+    
+    protected $casts = [
+        'pat_m' => 'integer',
+        'ppt_m' => 'integer',
+        'uasa_m' => 'integer',
+        'year' => 'integer'
     ];
 }
