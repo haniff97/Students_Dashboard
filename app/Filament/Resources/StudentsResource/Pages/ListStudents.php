@@ -9,7 +9,9 @@ use Filament\Actions;
 use Filament\Actions\ExportAction;
 use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Actions\ImportAction;
+use Filament\Actions\Imports\Enums\ImportFormat;
 use Filament\Resources\Pages\ListRecords;
+
 
 class ListStudents extends ListRecords
 {
@@ -19,10 +21,10 @@ class ListStudents extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
-            
+
             ExportAction::make()
                 ->button()
-                ->color(color: 'primary')
+                ->color('primary')
                 ->outlined()
                 ->exporter(StudentsExporter::class)
                 ->formats([
@@ -31,9 +33,10 @@ class ListStudents extends ListRecords
 
             ImportAction::make()
                 ->button()
-                ->color(color: 'primary')
+                ->color('primary')
                 ->outlined()
-                ->importer(StudentImporter::class),
+                ->importer(StudentImporter::class)
+               
         ];
     }
 }

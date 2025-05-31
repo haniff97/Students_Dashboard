@@ -8,24 +8,32 @@ use Illuminate\Database\Eloquent\Model;
 class Students extends Model
 {
     use HasFactory;
-
+    protected $table = 'students'; 
     protected $fillable = [
         'name',
         'class',
         'subject',
-        'pat_m',
-        'pat_g',
+        'pa1_m',
+        'pa1_g',
         'ppt_m',
         'ppt_g',
         'uasa_m',
         'uasa_g',
-        'year'
+        'tov_m',
+        'tov_g',
+        'etr_m',
+        'etr_g',
+        'year',
     ];
+
     
     protected $casts = [
-        'pat_m' => 'integer',
+        'pa1_m' => 'integer',
         'ppt_m' => 'integer',
         'uasa_m' => 'integer',
-        'year' => 'integer'
+        'tov_m' => 'integer',
+        'etr_m' => 'integer',
+        'year' => 'integer',
     ];
+
 }
