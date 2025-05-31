@@ -16,23 +16,52 @@ class StudentImporter extends Importer
     public static function getColumns(): array
     {
         return [
-                ImportColumn::make('name')->requiredMapping()->rules(['required', 'max:255']),
-                ImportColumn::make('class')->requiredMapping()->rules(['required', 'max:255']),
-                ImportColumn::make('subject')->rules(['max:255']),
+            ImportColumn::make('name')
+                ->requiredMapping()
+                ->rules(['required', 'max:255']),
 
-                ImportColumn::make('pa1_m')->numeric()->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-                ImportColumn::make('pa1_g')->rules(['max:11']),
+            ImportColumn::make('class')
+                ->requiredMapping()
+                ->rules(['required', 'max:255']),
 
-                ImportColumn::make('ppt_m')->numeric()->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-                ImportColumn::make('ppt_g')->rules(['max:11']),
+            ImportColumn::make('subject')
+                ->requiredMapping()
+                ->rules(['required', 'max:255']),
 
-                ImportColumn::make('uasa_m')->numeric()->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-                ImportColumn::make('uasa_g')->rules(['max:11']),
+            ImportColumn::make('pa1_m')
+                ->requiredMapping()
+                ->numeric()
+                ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
 
-                ImportColumn::make('year')->numeric()->rules(['nullable', 'integer']),
+            ImportColumn::make('pa1_g')
+                ->requiredMapping()
+                ->rules(['nullable', 'max:11']),
 
+            ImportColumn::make('ppt_m')
+                ->requiredMapping()
+                ->numeric()
+                ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
+
+            ImportColumn::make('ppt_g')
+                ->requiredMapping()
+                ->rules(['nullable', 'max:11']),
+
+            ImportColumn::make('uasa_m')
+                ->requiredMapping()
+                ->numeric()
+                ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
+
+            ImportColumn::make('uasa_g')
+                ->requiredMapping()
+                ->rules(['nullable', 'max:11']),
+
+            ImportColumn::make('year')
+                ->requiredMapping()
+                ->numeric()
+                ->rules(['nullable', 'integer']),
         ];
     }
+
 
     public function resolveRecord(): ?Students
     {
