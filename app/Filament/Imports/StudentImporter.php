@@ -6,6 +6,7 @@ use App\Models\Students;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
+use Illuminate\Support\Facades\Artisan;
 
 class StudentImporter extends Importer
 {
@@ -62,7 +63,6 @@ class StudentImporter extends Importer
         ];
     }
 
-
     public function resolveRecord(): ?Students
     {
         \Log::info('Importing student data:', $this->data);
@@ -86,11 +86,9 @@ class StudentImporter extends Importer
             );
         } catch (\Exception $e) {
             \Log::error('Failed importing student: ' . $e->getMessage());
-            throw $e; // rethrow so job fails visibly
+            throw $e; // Let the import job fail visibly
         }
     }
-
-
 
     public static function getCompletedNotificationBody(Import $import): string
     {
@@ -102,5 +100,12 @@ class StudentImporter extends Importer
 
         return $body;
     }
+
+    public function afterImport(): void
+    {
+        \Log::info('Running ETR calculation after import');
+        Artisan::call('app:calculate-e-t-r');
+    }
+
 }
 
