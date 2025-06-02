@@ -17,49 +17,16 @@ class StudentImporter extends Importer
     public static function getColumns(): array
     {
         return [
-            ImportColumn::make('name')
-                ->requiredMapping()
-                ->rules(['required', 'max:255']),
-
-            ImportColumn::make('class')
-                ->requiredMapping()
-                ->rules(['required', 'max:255']),
-
-            ImportColumn::make('subject')
-                ->requiredMapping()
-                ->rules(['required', 'max:255']),
-
-            ImportColumn::make('pa1_m')
-                ->requiredMapping()
-                ->numeric()
-                ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-
-            ImportColumn::make('pa1_g')
-                ->requiredMapping()
-                ->rules(['nullable', 'max:11']),
-
-            ImportColumn::make('ppt_m')
-                ->requiredMapping()
-                ->numeric()
-                ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-
-            ImportColumn::make('ppt_g')
-                ->requiredMapping()
-                ->rules(['nullable', 'max:11']),
-
-            ImportColumn::make('uasa_m')
-                ->requiredMapping()
-                ->numeric()
-                ->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-
-            ImportColumn::make('uasa_g')
-                ->requiredMapping()
-                ->rules(['nullable', 'max:11']),
-
-            ImportColumn::make('year')
-                ->requiredMapping()
-                ->numeric()
-                ->rules(['nullable', 'integer']),
+            ImportColumn::make('name')->requiredMapping()->rules(['required', 'max:255']),
+            ImportColumn::make('class')->requiredMapping()->rules(['required', 'max:255']),
+            ImportColumn::make('subject')->requiredMapping()->rules(['required', 'max:255']),
+            ImportColumn::make('pa1_m')->requiredMapping()->numeric()->rules(['nullable', 'numeric', 'min:0', 'max:100']),
+            ImportColumn::make('pa1_g')->requiredMapping()->rules(['nullable', 'max:11']),
+            ImportColumn::make('ppt_m')->requiredMapping()->numeric()->rules(['nullable', 'numeric', 'min:0', 'max:100']),
+            ImportColumn::make('ppt_g')->requiredMapping()->rules(['nullable', 'max:11']),
+            ImportColumn::make('uasa_m')->requiredMapping()->numeric()->rules(['nullable', 'numeric', 'min:0', 'max:100']),
+            ImportColumn::make('uasa_g')->requiredMapping()->rules(['nullable', 'max:11']),
+            ImportColumn::make('year')->requiredMapping()->numeric()->rules(['nullable', 'integer']),
         ];
     }
 
@@ -84,6 +51,7 @@ class StudentImporter extends Importer
             );
 
             $this->calculateETR($student);
+            $this->calculateTOV($student);
 
             return $student;
         } catch (\Exception $e) {
@@ -92,47 +60,82 @@ class StudentImporter extends Importer
         }
     }
 
-private function calculateETR(Students $student): void
-{
-    $grades = Grade::orderBy('min_mark')->get();
+    private function calculateETR(Students $student): void
+    {
+        $grades = Grade::orderBy('min_mark')->get();
 
-    $latestMark = null;
-    $latestGrade = null;
+        $latestMark = null;
+        $latestGrade = null;
 
-    if (!empty($student->uasa_m) && strtoupper(trim($student->uasa_g)) !== 'TH') {
-        $latestMark = $student->uasa_m;
-        $latestGrade = strtoupper(trim($student->uasa_g));
-    } elseif (!empty($student->ppt_m) && strtoupper(trim($student->ppt_g)) !== 'TH') {
-        $latestMark = $student->ppt_m;
-        $latestGrade = strtoupper(trim($student->ppt_g));
-    } elseif (!empty($student->pa1_m) && strtoupper(trim($student->pa1_g)) !== 'TH') {
-        $latestMark = $student->pa1_m;
-        $latestGrade = strtoupper(trim($student->pa1_g));
+        if (!empty($student->uasa_m) && strtoupper(trim($student->uasa_g)) !== 'TH') {
+            $latestMark = $student->uasa_m;
+            $latestGrade = strtoupper(trim($student->uasa_g));
+        } elseif (!empty($student->ppt_m) && strtoupper(trim($student->ppt_g)) !== 'TH') {
+            $latestMark = $student->ppt_m;
+            $latestGrade = strtoupper(trim($student->ppt_g));
+        } elseif (!empty($student->pa1_m) && strtoupper(trim($student->pa1_g)) !== 'TH') {
+            $latestMark = $student->pa1_m;
+            $latestGrade = strtoupper(trim($student->pa1_g));
+        }
+
+        if ($latestMark === null || !$latestGrade) {
+            return;
+        }
+
+        $current = $grades->firstWhere('grade', $latestGrade);
+        if (!$current) {
+            return;
+        }
+
+        $next = $grades->filter(fn($g) => $g->min_mark > $current->min_mark)->first();
+
+        if (!$next) {
+            $student->etr_m = $latestMark;
+            $student->etr_g = $latestGrade;
+        } else {
+            $student->etr_m = $next->min_mark;
+            $student->etr_g = $next->grade;
+        }
+
+        $student->save();
     }
 
-    if ($latestMark === null || !$latestGrade) {
-        return;
+    private function calculateTOV(Students $student): void
+    {
+        $previousYear = $student->year - 1;
+
+        $lastYear = Students::where('name', $student->name)
+            ->where('class', $student->class)
+            ->where('subject', $student->subject)
+            ->where('year', $previousYear)
+            ->first();
+
+        if (!$lastYear) {
+            return;
+        }
+
+        $latestMark = null;
+        $latestGrade = null;
+
+        if (!empty($lastYear->uasa_m) && strtoupper(trim($lastYear->uasa_g)) !== 'TH') {
+            $latestMark = $lastYear->uasa_m;
+            $latestGrade = strtoupper(trim($lastYear->uasa_g));
+        } elseif (!empty($lastYear->ppt_m) && strtoupper(trim($lastYear->ppt_g)) !== 'TH') {
+            $latestMark = $lastYear->ppt_m;
+            $latestGrade = strtoupper(trim($lastYear->ppt_g));
+        } elseif (!empty($lastYear->pa1_m) && strtoupper(trim($lastYear->pa1_g)) !== 'TH') {
+            $latestMark = $lastYear->pa1_m;
+            $latestGrade = strtoupper(trim($lastYear->pa1_g));
+        }
+
+        if ($latestMark === null || !$latestGrade) {
+            return;
+        }
+
+        $student->tov_m = $latestMark;
+        $student->tov_g = $latestGrade;
+        $student->save();
     }
-
-    $current = $grades->firstWhere('grade', $latestGrade);
-    if (!$current) {
-        return;
-    }
-
-    $next = $grades->filter(fn($g) => $g->min_mark > $current->min_mark)->first();
-
-    if (!$next) {
-        // Student already has the highest grade – keep ETR same as latest
-        $student->etr_m = $latestMark;
-        $student->etr_g = $latestGrade;
-    } else {
-        $student->etr_m = $next->min_mark;
-        $student->etr_g = $next->grade;
-    }
-
-    $student->save();
-}
-
 
     public static function getCompletedNotificationBody(Import $import): string
     {
