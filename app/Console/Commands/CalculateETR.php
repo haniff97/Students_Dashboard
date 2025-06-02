@@ -43,7 +43,8 @@ public function handle()
             $latestGrade = $student->pa1_g;
         }
 
-        if (!$latestMark || !$latestGrade) {
+        if ($latestMark === null || !$latestGrade) {
+
             $this->warn("Skipping {$student->name} — No latest mark.");
             continue;
         }
@@ -58,7 +59,7 @@ public function handle()
             $this->warn("Grade '{$latestGrade}' not found for {$student->name}");
             continue;
         }
-
+        
         // Find next higher grade
         $next = $grades->filter(fn($g) => $g->min_mark > $current->min_mark)->first();
 

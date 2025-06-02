@@ -3,15 +3,15 @@
 namespace App\Filament\Imports;
 
 use App\Models\Students;
+use App\Models\Grade;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
-use Illuminate\Support\Facades\Artisan;
 
 class StudentImporter extends Importer
 {
     protected static ?string $model = Students::class;
-    
+
     protected static bool $skipImportLogging = true;
 
     public static function getColumns(): array
@@ -65,10 +65,8 @@ class StudentImporter extends Importer
 
     public function resolveRecord(): ?Students
     {
-        \Log::info('Importing student data:', $this->data);
-
         try {
-            return Students::updateOrCreate(
+            $student = Students::updateOrCreate(
                 [
                     'name' => $this->data['name'],
                     'class' => $this->data['class'],
@@ -84,11 +82,57 @@ class StudentImporter extends Importer
                     'uasa_g' => $this->data['uasa_g'] ?? null,
                 ]
             );
+
+            $this->calculateETR($student);
+
+            return $student;
         } catch (\Exception $e) {
             \Log::error('Failed importing student: ' . $e->getMessage());
-            throw $e; // Let the import job fail visibly
+            throw $e;
         }
     }
+
+private function calculateETR(Students $student): void
+{
+    $grades = Grade::orderBy('min_mark')->get();
+
+    $latestMark = null;
+    $latestGrade = null;
+
+    if (!empty($student->uasa_m) && strtoupper(trim($student->uasa_g)) !== 'TH') {
+        $latestMark = $student->uasa_m;
+        $latestGrade = strtoupper(trim($student->uasa_g));
+    } elseif (!empty($student->ppt_m) && strtoupper(trim($student->ppt_g)) !== 'TH') {
+        $latestMark = $student->ppt_m;
+        $latestGrade = strtoupper(trim($student->ppt_g));
+    } elseif (!empty($student->pa1_m) && strtoupper(trim($student->pa1_g)) !== 'TH') {
+        $latestMark = $student->pa1_m;
+        $latestGrade = strtoupper(trim($student->pa1_g));
+    }
+
+    if ($latestMark === null || !$latestGrade) {
+        return;
+    }
+
+    $current = $grades->firstWhere('grade', $latestGrade);
+    if (!$current) {
+        return;
+    }
+
+    $next = $grades->filter(fn($g) => $g->min_mark > $current->min_mark)->first();
+
+    if (!$next) {
+        // Student already has the highest grade – keep ETR same as latest
+        $student->etr_m = $latestMark;
+        $student->etr_g = $latestGrade;
+    } else {
+        $student->etr_m = $next->min_mark;
+        $student->etr_g = $next->grade;
+    }
+
+    $student->save();
+}
+
 
     public static function getCompletedNotificationBody(Import $import): string
     {
@@ -100,12 +144,4 @@ class StudentImporter extends Importer
 
         return $body;
     }
-
-    public function afterImport(): void
-    {
-        \Log::info('Running ETR calculation after import');
-        Artisan::call('app:calculate-e-t-r');
-    }
-
 }
-
