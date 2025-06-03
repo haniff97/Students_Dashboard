@@ -7,12 +7,15 @@ use App\Filament\Resources\StudentsResource\Pages;
 use App\Models\Students;
 use Filament\Actions\ImportAction;
 use Filament\Forms;
+use Filament\Forms\Components\Builder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use App\Filament\Resources\StudentsResource\Widgets\BlogPostsChart;
 class StudentsResource extends Resource
@@ -20,14 +23,9 @@ class StudentsResource extends Resource
     protected static ?string $model = Students::class;
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
 
-    // THESE SHOULD BE IN YOUR StudentImporter CLASS, NOT HERE
-    // protected static bool $skipImportLogging = true;  // <-- WRONG PLACE
-    // protected static bool $ignoreRecordOnFailure = true;  // <-- WRONG PLACE
-
-
     public static function form(Form $form): Form
     {
-        return $form
+        return $form /// dekat create student screen
             ->schema([
                 TextInput::make('name')->required(),
                 TextInput::make('class')->required(),
@@ -61,11 +59,16 @@ class StudentsResource extends Resource
             BlogPostsChart::class,
         ];
     }
-    public static function table(Table $table): Table
+    public static function table(Table $table): Table    // dekat list student, column
     {
         return $table
             ->columns([
-                TextColumn::make('name'),
+                TextColumn::make('name')
+                ->label('Student')
+                ->extraAttributes(fn ($record) => [
+                    'wire:click' => "\$dispatch('student-selected', { studentId: {$record->id} })",
+                    'class' => 'cursor-pointer text-primary-600 hover:underline',
+                ]),
                 TextColumn::make('class'),
                 TextColumn::make('subject'),
                 TextColumn::make('tov_m')->label('TOV (M)'),
@@ -81,7 +84,24 @@ class StudentsResource extends Resource
                 TextColumn::make('year')
             ])
             ->filters([
-                //
+                SelectFilter::make('year')
+                    ->label('Year')
+                    ->options(Students::query()->distinct()->pluck('year', 'year')->toArray())
+                    ->searchable(),
+
+                SelectFilter::make('class')
+                    ->label('Class')
+                    ->options(Students::query()->distinct()->pluck('class', 'class')->toArray())
+                    ->searchable(),
+
+                SelectFilter::make('subject')
+                    ->label('Subject')
+                    ->options(Students::query()->distinct()->pluck('subject', 'subject')->toArray())
+                    ->searchable(),
+
+                SelectFilter::make('form')
+                    ->label('Form') // Only if you have a 'form' column
+                    ->options([1 => 'Form 1', 2 => 'Form 2', 3 => 'Form 3', 4 => 'Form 4', 5 => 'Form 5']),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

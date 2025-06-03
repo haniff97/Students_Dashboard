@@ -4,19 +4,26 @@ namespace App\Filament\Resources\StudentsResource\Widgets;
 
 use App\Models\Students;
 use Filament\Widgets\ChartWidget;
+use Livewire\Attributes\On;
 
 class BlogPostsChart extends ChartWidget
 {
     protected static ?string $heading = 'Student Performance Chart';
-
     protected static ?string $maxHeight = '300px';
+
+    public ?int $studentId = null;
+
+    #[On('student-selected')]
+    public function updateStudent($studentId)
+    {
+        $this->studentId = $studentId;
+    }
 
     protected function getData(): array
     {
-        // Replace this with dynamic logic if needed
-        $student = Students::where('name', 'ADAM HAFIZ BIN MOHAMAD SOFI')
-            ->orderByDesc('year')
-            ->first();
+        $student = $this->studentId
+            ? Students::find($this->studentId)
+            : Students::orderByDesc('year')->first();
 
         if (!$student) {
             return [
@@ -28,7 +35,7 @@ class BlogPostsChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Marks',
+                    'label' => $student->name . ' Marks',
                     'data' => [
                         $student->pa1_m,
                         $student->ppt_m,
@@ -50,9 +57,10 @@ class BlogPostsChart extends ChartWidget
     {
         return 'line';
     }
+
     public function getColumnSpan(): int | string | array
     {
-        return 'full'; 
+        return 'full';
     }
-
 }
+
