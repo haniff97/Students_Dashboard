@@ -59,7 +59,7 @@ class StudentsResource extends Resource
             BlogPostsChart::class,
         ];
     }
-    public static function table(Table $table): Table    // dekat list student, column
+    public static function table(Table $table): Table    // dekat list student, columnh
     {
         return $table
             ->columns([
@@ -104,7 +104,11 @@ class StudentsResource extends Resource
                     ->options([1 => 'Form 1', 2 => 'Form 2', 3 => 'Form 3', 4 => 'Form 4', 5 => 'Form 5']),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('viewChart')
+    ->label('View Chart')
+    ->icon('heroicon-o-chart-bar')
+    ->action(fn ($record) => $this->dispatchBrowserEvent('student-selected', ['id' => $record->id]))
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
