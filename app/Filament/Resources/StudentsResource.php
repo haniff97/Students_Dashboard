@@ -14,7 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-
+use App\Filament\Resources\StudentsResource\Widgets\BlogPostsChart;
 class StudentsResource extends Resource
 {
     protected static ?string $model = Students::class;
@@ -23,6 +23,7 @@ class StudentsResource extends Resource
     // THESE SHOULD BE IN YOUR StudentImporter CLASS, NOT HERE
     // protected static bool $skipImportLogging = true;  // <-- WRONG PLACE
     // protected static bool $ignoreRecordOnFailure = true;  // <-- WRONG PLACE
+
 
     public static function form(Form $form): Form
     {
@@ -54,7 +55,12 @@ class StudentsResource extends Resource
                 TextInput::make('year')->numeric(),
             ]);
     }
-
+    public static function getWidgets(): array
+    {
+        return [
+            BlogPostsChart::class,
+        ];
+    }
     public static function table(Table $table): Table
     {
         return $table
@@ -114,4 +120,5 @@ class StudentsResource extends Resource
                 ->icon('heroicon-o-arrow-up-tray'),
         ];
     }
+
 }

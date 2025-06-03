@@ -6,6 +6,7 @@ use App\Filament\Exports\StudentsExporter;
 use App\Filament\Imports\StudentImporter;
 use App\Filament\Resources\StudentsResource;
 use Filament\Actions;
+use App\Filament\Resources\StudentsResource\Widgets\BlogPostsChart;
 use Filament\Actions\ExportAction;
 use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Actions\ImportAction;
@@ -37,6 +38,12 @@ class ListStudents extends ListRecords
                 ->outlined()
                 ->importer(StudentImporter::class)
                
+        ];
+    }
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            BlogPostsChart::class,
         ];
     }
 }
