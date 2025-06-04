@@ -46,4 +46,5 @@ class ListStudents extends ListRecords
             BlogPostsChart::class,
         ];
     }
+    
 }

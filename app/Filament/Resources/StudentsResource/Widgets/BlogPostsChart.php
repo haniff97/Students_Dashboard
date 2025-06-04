@@ -37,10 +37,10 @@ class BlogPostsChart extends ChartWidget
                 [
                     'label' => $student->name . ' Marks',
                     'data' => [
+                        $student->tov_m,
                         $student->pa1_m,
                         $student->ppt_m,
                         $student->uasa_m,
-                        $student->tov_m,
                         $student->etr_m,
                     ],
                     'borderColor' => '#3b82f6',
@@ -49,7 +49,7 @@ class BlogPostsChart extends ChartWidget
                     'tension' => 0.3,
                 ],
             ],
-            'labels' => ['PA1', 'PPT', 'UASA', 'TOV', 'ETR'],
+            'labels' => ['TOV','PA1', 'PPT', 'UASA', 'ETR'],
         ];
     }
 
