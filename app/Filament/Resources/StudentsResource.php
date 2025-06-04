@@ -63,12 +63,15 @@ class StudentsResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')
+            TextColumn::make('name')
                 ->label('Student')
-                ->extraAttributes(fn ($record) => [
-                    'wire:click' => "\$dispatch('student-selected', { studentId: {$record->id} })",
+                ->action(function ($record, $livewire) {
+                    $livewire->dispatch('student-selected', studentId: $record->id);
+                })
+                ->extraAttributes([
                     'class' => 'cursor-pointer text-primary-600 hover:underline',
                 ]),
+
                 TextColumn::make('class'),
                 TextColumn::make('subject'),
                 TextColumn::make('tov_m')->label('TOV (M)'),
@@ -105,9 +108,9 @@ class StudentsResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('viewChart')
-    ->label('View Chart')
-    ->icon('heroicon-o-chart-bar')
-    ->action(fn ($record) => $this->dispatchBrowserEvent('student-selected', ['id' => $record->id]))
+                ->label('View Chart')
+                ->icon('heroicon-o-chart-bar')
+                ->action(fn ($record) => $this->dispatchBrowserEvent('student-selected', ['id' => $record->id]))
 
             ])
             ->bulkActions([
