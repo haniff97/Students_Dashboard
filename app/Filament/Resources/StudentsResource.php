@@ -29,6 +29,7 @@ class StudentsResource extends Resource
             ->schema([
                 TextInput::make('name')->required(),
                 TextInput::make('class')->required(),
+                TextInput::make('form')->required(),
                 Select::make('subject')
                     ->label('Subject')
                     ->options(function () {
@@ -73,6 +74,7 @@ class StudentsResource extends Resource
                 ]),
 
                 TextColumn::make('class'),
+                TextColumn::make('form'),
                 TextColumn::make('subject'),
                 TextColumn::make('tov_m')->label('TOV (M)'),
                 TextColumn::make('tov_g')->label('TOV (G)'),

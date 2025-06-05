@@ -19,6 +19,7 @@ class StudentImporter extends Importer
         return [
             ImportColumn::make('name')->requiredMapping()->rules(['required', 'max:255']),
             ImportColumn::make('class')->requiredMapping()->rules(['required', 'max:255']),
+            ImportColumn::make('form')->requiredMapping()->numeric()->rules(['required', 'integer', 'min:1', 'max:5']),
             ImportColumn::make('subject')->requiredMapping()->rules(['required', 'max:255']),
             ImportColumn::make('pa1_m')->requiredMapping()->numeric()->rules(['nullable', 'numeric', 'min:0', 'max:100']),
             ImportColumn::make('pa1_g')->requiredMapping()->rules(['nullable', 'max:11']),
@@ -37,6 +38,7 @@ class StudentImporter extends Importer
                 [
                     'name' => $this->data['name'],
                     'class' => $this->data['class'],
+                    'form' => $this->data['form'],
                     'subject' => $this->data['subject'],
                     'year' => $this->data['year'],
                 ],
@@ -106,6 +108,7 @@ class StudentImporter extends Importer
 
         $lastYear = Students::where('name', $student->name)
             ->where('class', $student->class)
+            ->where('form', $student->class)
             ->where('subject', $student->subject)
             ->where('year', $previousYear)
             ->first();
