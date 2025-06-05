@@ -88,26 +88,52 @@ class StudentsResource extends Resource
                 TextColumn::make('etr_g')->label('ETR (G)'),
                 TextColumn::make('year')
             ])
-            ->filters([
-                SelectFilter::make('year')
-                    ->label('Year')
-                    ->options(Students::query()->distinct()->pluck('year', 'year')->toArray())
-                    ->searchable(),
+->filters([
+    SelectFilter::make('year')
+        ->label('Year')
+        ->options(Students::query()->distinct()->pluck('year', 'year')->toArray())
+        ->searchable(),
 
-                SelectFilter::make('class')
-                    ->label('Class')
-                    ->options(Students::query()->distinct()->pluck('class', 'class')->toArray())
-                    ->searchable(),
+    SelectFilter::make('subject')
+        ->label('Subject')
+        ->options(Students::query()->distinct()->pluck('subject', 'subject')->toArray())
+        ->searchable(),
 
-                SelectFilter::make('subject')
-                    ->label('Subject')
-                    ->options(Students::query()->distinct()->pluck('subject', 'subject')->toArray())
-                    ->searchable(),
+    Filter::make('form_and_class')
+        ->label('Form & Class')
+        ->form([
+            Select::make('form')
+                ->label('Form')
+                ->options(
+                    Students::query()
+                        ->select('form')
+                        ->distinct()
+                        ->orderBy('form')
+                        ->pluck('form', 'form')
+                )
+                ->reactive(),
 
-                SelectFilter::make('form')
-                    ->label('Form') // Only if you have a 'form' column
-                    ->options([1 => 'Form 1', 2 => 'Form 2', 3 => 'Form 3', 4 => 'Form 4', 5 => 'Form 5']),
-            ])
+            Select::make('class')
+                ->label('Class')
+                ->options(function (callable $get) {
+                    $form = $get('form');
+                    if (!$form) return [];
+
+                    return Students::query()
+                        ->where('form', $form)
+                        ->select('class')
+                        ->distinct()
+                        ->orderBy('class')
+                        ->pluck('class', 'class');
+                }),
+        ])
+        ->query(function ($query, array $data) {
+            return $query
+                ->when($data['form'], fn ($q) => $q->where('form', $data['form']))
+                ->when($data['class'], fn ($q) => $q->where('class', $data['class']));
+        }),
+])
+
             ->actions([
                 Tables\Actions\Action::make('viewChart')
                 ->label('View Chart')
