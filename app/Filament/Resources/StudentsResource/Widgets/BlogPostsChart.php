@@ -35,7 +35,7 @@ class BlogPostsChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => $student->name . ' Marks',
+                    'label' => $student->name . ' MARKAH',
                     'data' => [
                         $student->tov_m,
                         $student->pa1_m,
