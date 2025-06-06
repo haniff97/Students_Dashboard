@@ -8,7 +8,7 @@ use Livewire\Attributes\On;
 
 class BlogPostsChart extends ChartWidget
 {
-    protected static ?string $heading = 'Student Performance Chart';
+    protected static ?string $heading = 'Carta Prestasi Pelajar';
     protected static ?string $maxHeight = '300px';
 
     public ?int $studentId = null;
