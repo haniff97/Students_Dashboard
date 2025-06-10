@@ -106,10 +106,13 @@ class StudentsResource extends Resource
                 ->label('Form')
                 ->options(
                     Students::query()
+                        ->whereNotNull('form')
+                        ->where('form', '!=', '')
                         ->select('form')
                         ->distinct()
                         ->orderBy('form')
                         ->pluck('form', 'form')
+                        ->toArray()
                 )
                 ->reactive(),
 
@@ -121,10 +124,13 @@ class StudentsResource extends Resource
 
                     return Students::query()
                         ->where('form', $form)
+                        ->whereNotNull('class')
+                        ->where('class', '!=', '')
                         ->select('class')
                         ->distinct()
                         ->orderBy('class')
-                        ->pluck('class', 'class');
+                        ->pluck('class', 'class')
+                        ->toArray();
                 }),
         ])
         ->query(function ($query, array $data) {
@@ -132,7 +138,8 @@ class StudentsResource extends Resource
                 ->when($data['form'], fn ($q) => $q->where('form', $data['form']))
                 ->when($data['class'], fn ($q) => $q->where('class', $data['class']));
         }),
-])
+
+    ])
 
             ->actions([
                 Tables\Actions\Action::make('viewChart')
