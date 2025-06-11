@@ -18,6 +18,7 @@ class PerformanceResource extends Resource
     protected static ?string $model = Performance::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-pie';
+    protected static ?string $navigationGroup = null;
 
     public static function form(Form $form): Form
     {

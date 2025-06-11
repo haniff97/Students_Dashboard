@@ -22,7 +22,10 @@ class StudentsResource extends Resource
 {
     protected static ?string $model = Students::class;
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
-
+    public static function getNavigationLabel(): string
+    {
+        return 'Student Performances'; 
+    }
     public static function form(Form $form): Form
     {
         return $form /// dekat create student screen
