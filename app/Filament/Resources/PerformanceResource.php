@@ -19,6 +19,10 @@ class PerformanceResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-pie';
     protected static ?string $navigationGroup = null;
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false; // This prevents the resource from appearing in the sidebar
+    }
 
     public static function form(Form $form): Form
     {

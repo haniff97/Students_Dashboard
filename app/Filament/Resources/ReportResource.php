@@ -18,6 +18,11 @@ class ReportResource extends Resource
     protected static ?string $model = Report::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $navigationGroup = null;
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false; // This prevents the resource from appearing in the sidebar
+    }
 
     public static function form(Form $form): Form
     {
