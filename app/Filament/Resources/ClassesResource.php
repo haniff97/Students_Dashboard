@@ -49,16 +49,16 @@ class ClassesResource extends Resource
                         subject,
                         COUNT(*) as total_students,
                         SUM(CASE uasa_g
-                            WHEN "A+" THEN 1
-                            WHEN "A" THEN 2
-                            WHEN "A-" THEN 3
-                            WHEN "B+" THEN 4
-                            WHEN "B" THEN 5
-                            WHEN "C+" THEN 6
-                            WHEN "C" THEN 7
-                            WHEN "D" THEN 8
-                            WHEN "E" THEN 9
-                            WHEN "F" THEN 10
+                            WHEN "A+" THEN 0
+                            WHEN "A" THEN 1
+                            WHEN "A-" THEN 2
+                            WHEN "B+" THEN 3
+                            WHEN "B" THEN 4
+                            WHEN "C+" THEN 5
+                            WHEN "C" THEN 6
+                            WHEN "D" THEN 7
+                            WHEN "E" THEN 8
+                            WHEN "F" THEN 9
                             ELSE NULL
                         END) as total_gp
                     ')
