@@ -31,11 +31,12 @@ class ClassesResource extends Resource
                 TextColumn::make('class'),
                 TextColumn::make('subject'),
                 TextColumn::make('total_students')->label('Total Students'),
+                TextColumn::make('attended_students')->label('Attended Students'),
                 TextColumn::make('gp')
                     ->label('GP (%)')
                     ->formatStateUsing(fn ($record) =>
-                        $record->total_students > 0
-                            ? number_format(($record->gp / ($record->total_students * 9)) * 100, 2)
+                        $record->attended_students > 0
+                            ? number_format(($record->gp / ($record->attended_students * 9)) * 100, 2)
                             : '-'
                     ),
                 TextColumn::make('gpmp')
@@ -54,6 +55,7 @@ class ClassesResource extends Resource
                         form as tingkatan,
                         subject,
                         COUNT(*) as total_students,
+                        COUNT(CASE WHEN tov_g IS NOT NULL AND tov_g NOT IN ("TH") THEN 1 END) as attended_students,
                         SUM(CASE tov_g
                             WHEN "A+" THEN 0
                             WHEN "A" THEN 1
