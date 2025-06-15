@@ -31,12 +31,18 @@ class ClassesResource extends Resource
                 TextColumn::make('class'),
                 TextColumn::make('subject'),
                 TextColumn::make('total_students')->label('Total Students'),
-                TextColumn::make('total_gp')->label('Total GP'),
+                TextColumn::make('gp')
+                    ->label('GP (%)')
+                    ->formatStateUsing(fn ($record) =>
+                        $record->total_students > 0
+                            ? number_format(($record->gp / ($record->total_students * 9)) * 100, 2)
+                            : '-'
+                    ),
                 TextColumn::make('gpmp')
                     ->label('GPMP')
                     ->formatStateUsing(fn ($record) =>
                         $record->total_students > 0
-                            ? number_format($record->total_gp / $record->total_students, 2)
+                            ? number_format($record->gp / $record->total_students, 2)
                             : '-'
                     ),
             ])
@@ -48,7 +54,7 @@ class ClassesResource extends Resource
                         form as tingkatan,
                         subject,
                         COUNT(*) as total_students,
-                        SUM(CASE uasa_g
+                        SUM(CASE tov_g
                             WHEN "A+" THEN 0
                             WHEN "A" THEN 1
                             WHEN "A-" THEN 2
@@ -60,7 +66,7 @@ class ClassesResource extends Resource
                             WHEN "E" THEN 8
                             WHEN "F" THEN 9
                             ELSE NULL
-                        END) as total_gp
+                        END) as gp
                     ')
                     ->groupBy('form', 'class', 'subject');
             })
