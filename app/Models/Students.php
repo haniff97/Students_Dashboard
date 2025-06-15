@@ -35,6 +35,7 @@ class Students extends Model
         'tov_m' => 'integer',
         'etr_m' => 'integer',
         'year' => 'integer',
+        'form' => 'integer',
     ];
 
 }
