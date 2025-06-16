@@ -31,7 +31,8 @@ class ClassesResource extends Resource
                 TextColumn::make('class'),
                 TextColumn::make('subject'),
                 TextColumn::make('total_students')->label('Total Students'),
-                TextColumn::make('attended_students')->label('Attended Students'),
+                TextColumn::make('attended_students')->label('Total Students Who Took Exam'),
+                TextColumn::make('didnt_take_students')->label('Total Students Who Didn\'t Take Exam'),
                 TextColumn::make('gp')
                     ->label('GP (%)')
                     ->formatStateUsing(fn ($record) =>
@@ -56,6 +57,7 @@ class ClassesResource extends Resource
                         subject,
                         COUNT(*) as total_students,
                         COUNT(CASE WHEN tov_g IS NOT NULL AND tov_g NOT IN ("TH") THEN 1 END) as attended_students,
+                        COUNT(CASE WHEN tov_g IN ("TH") OR tov_g IS NULL THEN 1 END) as didnt_take_students,
                         SUM(CASE tov_g
                             WHEN "A+" THEN 0
                             WHEN "A" THEN 1

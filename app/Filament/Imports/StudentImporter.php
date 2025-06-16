@@ -102,55 +102,56 @@ class StudentImporter extends Importer
         $student->save();
     }
 
-private function calculateTOV(Students $student): void
-{
-    $previousYear = $student->year - 1;
-    $previousForm = is_numeric($student->form) && $student->form > 1 ? $student->form - 1 : null;
+    private function calculateTOV(Students $student): void
+    {
+        $previousYear = $student->year - 1;
+        $previousForm = is_numeric($student->form) && $student->form > 1 ? $student->form - 1 : null;
 
-    if ($previousForm === null) {
-        \Log::info("Invalid form for student: {$student->name}, form: {$student->form}");
-        return;
+        if ($previousForm === null) {
+            \Log::info("Invalid form for student: {$student->name}, form: {$student->form}");
+            return;
+        }
+
+        $lastYear = Students::whereRaw('LOWER(name) = ?', [strtolower(trim($student->name))])
+            ->whereRaw('LOWER(class) = ?', [strtolower(trim($student->class))])
+            ->where('form', $previousForm)
+            ->whereRaw('LOWER(subject) = ?', [strtolower(trim($student->subject))])
+            ->where('year', $previousYear)
+            ->first();
+
+        if (!$lastYear) {
+            \Log::info("No previous year record for student: {$student->name}, class: {$student->class}, form: {$previousForm}, subject: {$student->subject}, year: {$previousYear}");
+            return;
+        }
+
+        // Prioritize uasa_m and uasa_g, even if uasa_g is TH
+        $latestMark = $lastYear->uasa_m; // Use uasa_m if it exists
+        $latestGrade = strtoupper(trim($lastYear->uasa_g)); // Use uasa_g regardless of value
+
+        // Fall back to ppt_m/ppt_g or pa1_m/pa1_g only if uasa_m is null
+        if ($latestMark === null) {
+            if (!empty($lastYear->ppt_m)) {
+                $latestMark = $lastYear->ppt_m;
+                $latestGrade = strtoupper(trim($lastYear->ppt_g));
+            } elseif (!empty($lastYear->pa1_m)) {
+                $latestMark = $lastYear->pa1_m;
+                $latestGrade = strtoupper(trim($lastYear->pa1_g));
+            }
+        }
+
+        if ($latestMark === null || !$latestGrade) {
+            \Log::info("No valid mark/grade for student: {$student->name}, uasa_m={$lastYear->uasa_m}, uasa_g={$lastYear->uasa_g}, ppt_m={$lastYear->ppt_m}, ppt_g={$lastYear->ppt_g}, pa1_m={$lastYear->pa1_m}, pa1_g={$lastYear->pa1_g}");
+            return;
+        }
+
+        $student->tov_m = $latestMark;
+        $student->tov_g = $latestGrade;
+        if (!$student->save()) {
+            \Log::error("Failed to save TOV for student: {$student->name}, tov_m: {$latestMark}, tov_g: {$latestGrade}");
+        } else {
+            \Log::info("Saved TOV for student: {$student->name}, tov_m: {$latestMark}, tov_g: {$latestGrade}");
+        }
     }
-
-    $lastYear = Students::whereRaw('LOWER(name) = ?', [strtolower(trim($student->name))])
-        ->whereRaw('LOWER(class) = ?', [strtolower(trim($student->class))])
-        ->where('form', $previousForm)
-        ->whereRaw('LOWER(subject) = ?', [strtolower(trim($student->subject))])
-        ->where('year', $previousYear)
-        ->first();
-
-    if (!$lastYear) {
-        \Log::info("No previous year record for student: {$student->name}, class: {$student->class}, form: {$previousForm}, subject: {$student->subject}, year: {$previousYear}");
-        return;
-    }
-
-    $latestMark = null;
-    $latestGrade = null;
-
-    if (!empty($lastYear->uasa_m) && strtoupper(trim($lastYear->uasa_g)) !== 'TH') {
-        $latestMark = $lastYear->uasa_m;
-        $latestGrade = strtoupper(trim($lastYear->uasa_g));
-    } elseif (!empty($lastYear->ppt_m) && strtoupper(trim($lastYear->ppt_g)) !== 'TH') {
-        $latestMark = $lastYear->ppt_m;
-        $latestGrade = strtoupper(trim($lastYear->ppt_g));
-    } elseif (!empty($lastYear->pa1_m) && strtoupper(trim($lastYear->pa1_g)) !== 'TH') {
-        $latestMark = $lastYear->pa1_m;
-        $latestGrade = strtoupper(trim($lastYear->pa1_g));
-    }
-
-    if ($latestMark === null || !$latestGrade) {
-        \Log::info("No valid mark/grade for student: {$student->name}, uasa_m={$lastYear->uasa_m}, uasa_g={$lastYear->uasa_g}, ppt_m={$lastYear->ppt_m}, ppt_g={$lastYear->ppt_g}, pa1_m={$lastYear->pa1_m}, pa1_g={$lastYear->pa1_g}");
-        return;
-    }
-
-    $student->tov_m = $latestMark;
-    $student->tov_g = $latestGrade;
-    if (!$student->save()) {
-        \Log::error("Failed to save TOV for student: {$student->name}, tov_m: {$latestMark}, tov_g: {$latestGrade}");
-    } else {
-        \Log::info("Saved TOV for student: {$student->name}, tov_m: {$latestMark}, tov_g: {$latestGrade}");
-    }
-}
 
     public static function getCompletedNotificationBody(Import $import): string
     {
