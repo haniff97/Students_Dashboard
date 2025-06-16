@@ -31,13 +31,24 @@ class ClassesResource extends Resource
                 TextColumn::make('class'),
                 TextColumn::make('subject'),
                 TextColumn::make('total_students')->label('Total Students'),
-                TextColumn::make('attended_students')->label('Total Students Who Took Exam'),
-                TextColumn::make('didnt_take_students')->label('Total Students Who Didn\'t Take Exam'),
+                TextColumn::make('attended_students')->label('Attend Exam'),
+                TextColumn::make('didnt_take_students')->label('TH'),
+                TextColumn::make('a_plus_count')->label('A+ Count'),
+                TextColumn::make('a_count')->label('A Count'),
+                TextColumn::make('a_minus_count')->label('A- Count'),
+                TextColumn::make('b_plus_count')->label('B+ Count'),
+                TextColumn::make('b_count')->label('B Count'),
+                TextColumn::make('c_plus_count')->label('C+ Count'),
+                TextColumn::make('c_count')->label('C Count'),
+                TextColumn::make('d_count')->label('D Count'),
+                TextColumn::make('e_count')->label('E Count'),
+                TextColumn::make('g_count')->label('G Count'),
+                TextColumn::make('th_count')->label('TH Count'),
                 TextColumn::make('gp')
                     ->label('GP (%)')
                     ->formatStateUsing(fn ($record) =>
                         $record->attended_students > 0
-                            ? number_format(($record->gp / ($record->attended_students * 9)) * 100, 2)
+                            ? number_format(($record->gp / $record->attended_students), 2)
                             : '-'
                     ),
                 TextColumn::make('gpmp')
@@ -47,6 +58,7 @@ class ClassesResource extends Resource
                             ? number_format($record->gp / $record->total_students, 2)
                             : '-'
                     ),
+
             ])
             ->query(function (): Builder {
                 return Students::query()
@@ -70,7 +82,18 @@ class ClassesResource extends Resource
                             WHEN "E" THEN 8
                             WHEN "F" THEN 9
                             ELSE NULL
-                        END) as gp
+                        END) as gp,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'A+\' THEN 1 END), 0) as a_plus_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'A\' THEN 1 END), 0) as a_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'A-\' THEN 1 END), 0) as a_minus_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'B+\' THEN 1 END), 0) as b_plus_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'B\' THEN 1 END), 0) as b_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'C+\' THEN 1 END), 0) as c_plus_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'C\' THEN 1 END), 0) as c_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'D\' THEN 1 END), 0) as d_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'E\' THEN 1 END), 0) as e_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'G\' THEN 1 END), 0) as g_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'TH\' THEN 1 END), 0) as th_count
                     ')
                     ->groupBy('form', 'class', 'subject');
             })
