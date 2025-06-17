@@ -30,25 +30,26 @@ class ClassesResource extends Resource
                 TextColumn::make('tingkatan')->label('Form'),
                 TextColumn::make('class'),
                 TextColumn::make('subject'),
+                TextColumn::make('year')->label('Year'),
                 TextColumn::make('total_students')->label('Total Students'),
-                TextColumn::make('attended_students')->label('Attend Exam'),
-                TextColumn::make('didnt_take_students')->label('TH'),
-                TextColumn::make('a_plus_count')->label('A+ Count'),
-                TextColumn::make('a_count')->label('A Count'),
-                TextColumn::make('a_minus_count')->label('A- Count'),
-                TextColumn::make('b_plus_count')->label('B+ Count'),
-                TextColumn::make('b_count')->label('B Count'),
-                TextColumn::make('c_plus_count')->label('C+ Count'),
-                TextColumn::make('c_count')->label('C Count'),
-                TextColumn::make('d_count')->label('D Count'),
-                TextColumn::make('e_count')->label('E Count'),
-                TextColumn::make('g_count')->label('G Count'),
-                TextColumn::make('th_count')->label('TH Count'),
+                TextColumn::make('attended_students')->label('Attend'),
+                TextColumn::make('didnt_take_students')->label('Did Not Attend'),
+                TextColumn::make('a_plus_count')->label('A+'),
+                TextColumn::make('a_count')->label('A'),
+                TextColumn::make('a_minus_count')->label('A-'),
+                TextColumn::make('b_plus_count')->label('B+'),
+                TextColumn::make('b_count')->label('B'),
+                TextColumn::make('c_plus_count')->label('C+'),
+                TextColumn::make('c_count')->label('C'),
+                TextColumn::make('d_count')->label('D'),
+                TextColumn::make('e_count')->label('E'),
+                TextColumn::make('g_count')->label('G'),
+                TextColumn::make('th_count')->label('TH'),
                 TextColumn::make('gp')
-                    ->label('GP (%)')
+                    ->label('Avg GP')
                     ->formatStateUsing(fn ($record) =>
                         $record->attended_students > 0
-                            ? number_format(($record->gp / $record->attended_students), 2)
+                            ? number_format($record->gp / $record->attended_students, 2)
                             : '-'
                     ),
                 TextColumn::make('gpmp')
@@ -58,19 +59,19 @@ class ClassesResource extends Resource
                             ? number_format($record->gp / $record->total_students, 2)
                             : '-'
                     ),
-
             ])
             ->query(function (): Builder {
                 return Students::query()
                     ->selectRaw('
-                        CONCAT(form, "-", class, "-", subject) as id,
+                        CONCAT(form, "-", class, "-", subject, "-", year) as id,
                         class,
                         form as tingkatan,
                         subject,
+                        year,
                         COUNT(*) as total_students,
-                        COUNT(CASE WHEN tov_g IS NOT NULL AND tov_g NOT IN ("TH") THEN 1 END) as attended_students,
-                        COUNT(CASE WHEN tov_g IN ("TH") OR tov_g IS NULL THEN 1 END) as didnt_take_students,
-                        SUM(CASE tov_g
+                        COUNT(CASE WHEN UPPER(tov_g) IS NOT NULL AND UPPER(tov_g) NOT IN ("TH") THEN 1 END) as attended_students,
+                        COUNT(CASE WHEN UPPER(tov_g) IN ("TH") OR UPPER(tov_g) IS NULL THEN 1 END) as didnt_take_students,
+                        SUM(CASE UPPER(tov_g)
                             WHEN "A+" THEN 0
                             WHEN "A" THEN 1
                             WHEN "A-" THEN 2
@@ -83,25 +84,35 @@ class ClassesResource extends Resource
                             WHEN "F" THEN 9
                             ELSE NULL
                         END) as gp,
-                        COALESCE(COUNT(CASE WHEN tov_g = \'A+\' THEN 1 END), 0) as a_plus_count,
-                        COALESCE(COUNT(CASE WHEN tov_g = \'A\' THEN 1 END), 0) as a_count,
-                        COALESCE(COUNT(CASE WHEN tov_g = \'A-\' THEN 1 END), 0) as a_minus_count,
-                        COALESCE(COUNT(CASE WHEN tov_g = \'B+\' THEN 1 END), 0) as b_plus_count,
-                        COALESCE(COUNT(CASE WHEN tov_g = \'B\' THEN 1 END), 0) as b_count,
-                        COALESCE(COUNT(CASE WHEN tov_g = \'C+\' THEN 1 END), 0) as c_plus_count,
-                        COALESCE(COUNT(CASE WHEN tov_g = \'C\' THEN 1 END), 0) as c_count,
-                        COALESCE(COUNT(CASE WHEN tov_g = \'D\' THEN 1 END), 0) as d_count,
-                        COALESCE(COUNT(CASE WHEN tov_g = \'E\' THEN 1 END), 0) as e_count,
-                        COALESCE(COUNT(CASE WHEN tov_g = \'G\' THEN 1 END), 0) as g_count,
-                        COALESCE(COUNT(CASE WHEN tov_g = \'TH\' THEN 1 END), 0) as th_count
+                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'A+\' THEN 1 END), 0) as a_plus_count,
+                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'A\' THEN 1 END), 0) as a_count,
+                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'A-\' THEN 1 END), 0) as a_minus_count,
+                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'B+\' THEN 1 END), 0) as b_plus_count,
+                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'B\' THEN 1 END), 0) as b_count,
+                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'C+\' THEN 1 END), 0) as c_plus_count,
+                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'C\' THEN 1 END), 0) as c_count,
+                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'D\' THEN 1 END), 0) as d_count,
+                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'E\' THEN 1 END), 0) as e_count,
+                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'G\' THEN 1 END), 0) as g_count,
+                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'TH\' THEN 1 END), 0) as th_count
                     ')
-                    ->groupBy('form', 'class', 'subject');
+                    ->groupBy('form', 'class', 'subject', 'year');
             })
             ->filters([
                 SelectFilter::make('year')
                     ->label('Year')
                     ->options(
                         Students::query()->distinct()->pluck('year', 'year')->toArray()
+                    ),
+                SelectFilter::make('class')
+                    ->label('Class')
+                    ->options(
+                        Students::query()->distinct()->pluck('class', 'class')->toArray()
+                    ),
+                SelectFilter::make('form')
+                    ->label('Form')
+                    ->options(
+                        Students::query()->distinct()->pluck('form', 'form')->toArray()
                     ),
                 SelectFilter::make('subject')
                     ->label('Subject')
