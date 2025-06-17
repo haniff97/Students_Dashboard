@@ -46,10 +46,10 @@ class ClassesResource extends Resource
                 TextColumn::make('g_count')->label('G'),
                 TextColumn::make('th_count')->label('TH'),
                 TextColumn::make('gp')
-                    ->label('Avg GP')
+                    ->label('GP (%)')
                     ->formatStateUsing(fn ($record) =>
                         $record->attended_students > 0
-                            ? number_format($record->gp / $record->attended_students, 2)
+                            ? number_format(($record->gp / $record->attended_students), 2)
                             : '-'
                     ),
                 TextColumn::make('gpmp')
@@ -59,6 +59,7 @@ class ClassesResource extends Resource
                             ? number_format($record->gp / $record->total_students, 2)
                             : '-'
                     ),
+                
             ])
             ->query(function (): Builder {
                 return Students::query()
@@ -69,9 +70,9 @@ class ClassesResource extends Resource
                         subject,
                         year,
                         COUNT(*) as total_students,
-                        COUNT(CASE WHEN UPPER(tov_g) IS NOT NULL AND UPPER(tov_g) NOT IN ("TH") THEN 1 END) as attended_students,
-                        COUNT(CASE WHEN UPPER(tov_g) IN ("TH") OR UPPER(tov_g) IS NULL THEN 1 END) as didnt_take_students,
-                        SUM(CASE UPPER(tov_g)
+                        COUNT(CASE WHEN tov_g IS NOT NULL AND tov_g NOT IN ("TH") THEN 1 END) as attended_students,
+                        COUNT(CASE WHEN tov_g IN ("TH") OR tov_g IS NULL THEN 1 END) as didnt_take_students,
+                        SUM(CASE tov_g
                             WHEN "A+" THEN 0
                             WHEN "A" THEN 1
                             WHEN "A-" THEN 2
@@ -84,17 +85,17 @@ class ClassesResource extends Resource
                             WHEN "F" THEN 9
                             ELSE NULL
                         END) as gp,
-                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'A+\' THEN 1 END), 0) as a_plus_count,
-                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'A\' THEN 1 END), 0) as a_count,
-                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'A-\' THEN 1 END), 0) as a_minus_count,
-                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'B+\' THEN 1 END), 0) as b_plus_count,
-                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'B\' THEN 1 END), 0) as b_count,
-                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'C+\' THEN 1 END), 0) as c_plus_count,
-                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'C\' THEN 1 END), 0) as c_count,
-                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'D\' THEN 1 END), 0) as d_count,
-                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'E\' THEN 1 END), 0) as e_count,
-                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'G\' THEN 1 END), 0) as g_count,
-                        COALESCE(COUNT(CASE WHEN UPPER(tov_g) = \'TH\' THEN 1 END), 0) as th_count
+                        COALESCE(COUNT(CASE WHEN tov_g = \'A+\' THEN 1 END), 0) as a_plus_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'A\' THEN 1 END), 0) as a_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'A-\' THEN 1 END), 0) as a_minus_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'B+\' THEN 1 END), 0) as b_plus_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'B\' THEN 1 END), 0) as b_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'C+\' THEN 1 END), 0) as c_plus_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'C\' THEN 1 END), 0) as c_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'D\' THEN 1 END), 0) as d_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'E\' THEN 1 END), 0) as e_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'G\' THEN 1 END), 0) as g_count,
+                        COALESCE(COUNT(CASE WHEN tov_g = \'TH\' THEN 1 END), 0) as th_count
                     ')
                     ->groupBy('form', 'class', 'subject', 'year');
             })
@@ -103,16 +104,6 @@ class ClassesResource extends Resource
                     ->label('Year')
                     ->options(
                         Students::query()->distinct()->pluck('year', 'year')->toArray()
-                    ),
-                SelectFilter::make('class')
-                    ->label('Class')
-                    ->options(
-                        Students::query()->distinct()->pluck('class', 'class')->toArray()
-                    ),
-                SelectFilter::make('form')
-                    ->label('Form')
-                    ->options(
-                        Students::query()->distinct()->pluck('form', 'form')->toArray()
                     ),
                 SelectFilter::make('subject')
                     ->label('Subject')
