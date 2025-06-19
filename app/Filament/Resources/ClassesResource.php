@@ -18,7 +18,7 @@ class ClassesResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
     protected static ?string $navigationLabel = 'Class Performances';
     protected static ?string $modelLabel = 'Class Performance';
-    protected static ?string $navigationGroup = 'Academic';
+    //protected static ?string $navigationGroup = 'Academic';
 
     public static function table(Table $table): Table
     {
