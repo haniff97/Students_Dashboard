@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ClassesResource\Pages;
 use App\Filament\Resources\ClassesResource\Widgets\GpmpOverview;
 use App\Models\Students;
+use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -15,10 +16,18 @@ use Illuminate\Database\Eloquent\Builder;
 class ClassesResource extends Resource
 {
     protected static ?string $model = Students::class;
-    protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
-    protected static ?string $navigationLabel = 'Class Performances';
+    protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+    protected static ?string $navigationLabel = 'Class Performance';
     protected static ?string $modelLabel = 'Class Performance';
     //protected static ?string $navigationGroup = 'Academic';
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                // Add form fields if needed
+            ]);
+    }
 
     public static function table(Table $table): Table
     {
@@ -48,12 +57,12 @@ class ClassesResource extends Resource
                     ->sortable(),
                     
                 TextColumn::make('attended_students')
-                    ->label('Attend')
+                    ->label('Attended')
                     ->numeric()
                     ->sortable(),
                     
                 TextColumn::make('didnt_take_students')
-                    ->label('Did Not Attend')
+                    ->label('Absent')
                     ->numeric()
                     ->sortable(),
                     
@@ -82,61 +91,69 @@ class ClassesResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('year')
-                    ->label('Year')
                     ->options(
                         Students::query()
                             ->distinct()
                             ->orderBy('year', 'desc')
                             ->pluck('year', 'year')
-                            ->toArray()
                     )
                     ->searchable(),
                     
                 SelectFilter::make('class')
-                    ->label('Class')
                     ->options(
                         Students::query()
                             ->distinct()
                             ->orderBy('class')
                             ->pluck('class', 'class')
-                            ->toArray()
                     )
                     ->searchable(),
                     
                 SelectFilter::make('form')
-                    ->label('Form')
                     ->options(
                         Students::query()
                             ->distinct()
                             ->orderBy('form')
                             ->pluck('form', 'form')
-                            ->toArray()
                     )
                     ->searchable(),
                     
                 SelectFilter::make('subject')
-                    ->label('Subject')
                     ->options(
                         Students::query()
                             ->distinct()
                             ->orderBy('subject')
                             ->pluck('subject', 'subject')
-                            ->toArray()
                     )
                     ->searchable(),
             ])
-            ->actions([])
-            ->bulkActions([])
+            ->actions([
+                Tables\Actions\ViewAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ])
             ->defaultSort('year', 'desc')
             ->deferLoading()
             ->persistFiltersInSession()
             ->striped();
+            //->recordKey('id');
     }
 
     public static function getWidgets(): array
     {
         return [
             GpmpOverview::class,
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListClasses::route('/'),
+            'create' => Pages\CreateClasses::route('/create'),
+            'view' => Pages\ViewClasses::route('/{record}'),
         ];
     }
 
@@ -198,12 +215,5 @@ class ClassesResource extends Resource
                 COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "TH" THEN 1 END), 0) as th_count
             ')
             ->groupBy('form', 'class', 'subject', 'year');
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListClasses::route('/'),
-        ];
     }
 }

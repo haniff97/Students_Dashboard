@@ -13,7 +13,15 @@ class ListClasses extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            // Remove if you don't need create action
+            // Actions\CreateAction::make(),
+        ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            ClassesResource\Widgets\GpmpOverview::class,
         ];
     }
 }
