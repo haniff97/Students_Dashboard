@@ -78,6 +78,7 @@ class ClassesResource extends Resource
                 self::gradeColumn('g_count', 'G'),
                 self::gradeColumn('th_count', 'TH'),
                 
+                
                 TextColumn::make('avg_gp')
                     ->label('Avg GP')
                     ->numeric(decimalPlaces: 2)
@@ -87,6 +88,32 @@ class ClassesResource extends Resource
                             : null
                     )
                     ->sortable(),
+                
+                                // Pass Percentage Column
+                TextColumn::make('pass_percentage')
+                    ->label('Pass %')
+                    ->numeric(decimalPlaces: 1)
+                    ->suffix('%')
+                    ->state(function ($record) {
+                        $passed = $record->a_plus_count + $record->a_count + $record->a_minus_count +
+                                 $record->b_plus_count + $record->b_count + 
+                                 $record->c_plus_count + $record->c_count +
+                                 $record->d_count;
+                        
+                        return $record->attended_students > 0 
+                            ? round(($passed / $record->attended_students) * 100, 1)
+                            : 0;
+                    })
+                    ->color(function ($state) {
+                        return match(true) {
+                            $state >= 90 => 'success',
+                            $state >= 70 => 'primary',
+                            $state >= 50 => 'warning',
+                            default => 'danger',
+                        };
+                    })
+                    ->sortable(),
+
             ])
             ->filters([
                 SelectFilter::make('year')
@@ -125,16 +152,8 @@ class ClassesResource extends Resource
                     )
                     ->searchable(),
             ])
-            ->actions([
-                // Remove ViewAction if not needed
-                // Tables\Actions\ViewAction::make(),
-            ])
-            ->bulkActions([
-                // Remove if not needed
-                // Tables\Actions\BulkActionGroup::make([
-                //     Tables\Actions\DeleteBulkAction::make(),
-                // ]),
-            ])
+            ->actions([])
+            ->bulkActions([])
             ->defaultSort('year', 'desc')
             ->deferLoading()
             ->persistFiltersInSession()
@@ -152,9 +171,6 @@ class ClassesResource extends Resource
     {
         return [
             'index' => Pages\ListClasses::route('/'),
-            // Remove these if not needed
-            // 'create' => Pages\CreateClasses::route('/create'),
-            // 'view' => Pages\ViewClasses::route('/{record}'),
         ];
     }
 
@@ -178,43 +194,49 @@ class ClassesResource extends Resource
         };
     }
 
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->selectRaw('
-                CONCAT(form, "-", class, "-", subject, "-", year) as id,
-                class,
-                form,
-                subject,
-                year,
-                COUNT(*) as total_students,
-                COUNT(CASE WHEN UPPER(tov_g) IS NOT NULL AND UPPER(tov_g) NOT IN ("TH") THEN 1 END) as attended_students,
-                COUNT(CASE WHEN UPPER(tov_g) IN ("TH") OR UPPER(tov_g) IS NULL THEN 1 END) as didnt_take_students,
-                SUM(CASE UPPER(tov_g)
-                    WHEN "A+" THEN 0
-                    WHEN "A" THEN 1
-                    WHEN "A-" THEN 2
-                    WHEN "B+" THEN 3
-                    WHEN "B" THEN 4
-                    WHEN "C+" THEN 5
-                    WHEN "C" THEN 6
-                    WHEN "D" THEN 7
-                    WHEN "E" THEN 8
-                    WHEN "F" THEN 9
-                    ELSE NULL
-                END) as gp,
-                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A+" THEN 1 END), 0) as a_plus_count,
-                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A" THEN 1 END), 0) as a_count,
-                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A-" THEN 1 END), 0) as a_minus_count,
-                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "B+" THEN 1 END), 0) as b_plus_count,
-                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "B" THEN 1 END), 0) as b_count,
-                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "C+" THEN 1 END), 0) as c_plus_count,
-                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "C" THEN 1 END), 0) as c_count,
-                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "D" THEN 1 END), 0) as d_count,
-                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "E" THEN 1 END), 0) as e_count,
-                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "G" THEN 1 END), 0) as g_count,
-                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "TH" THEN 1 END), 0) as th_count
-            ')
-            ->groupBy('form', 'class', 'subject', 'year');
-    }
+public static function getEloquentQuery(): Builder
+{
+    return parent::getEloquentQuery()
+        ->selectRaw('
+            CONCAT(form, "-", class, "-", subject, "-", year) as id,
+            class,
+            form,
+            subject,
+            year,
+            COUNT(*) as total_students,
+            COUNT(CASE WHEN UPPER(tov_g) IS NOT NULL AND UPPER(tov_g) NOT IN ("TH") THEN 1 END) as attended_students,
+            COUNT(CASE WHEN UPPER(tov_g) IN ("TH") OR UPPER(tov_g) IS NULL THEN 1 END) as didnt_take_students,
+            SUM(CASE UPPER(tov_g)
+                WHEN "A+" THEN 0
+                WHEN "A" THEN 1
+                WHEN "A-" THEN 2
+                WHEN "B+" THEN 3
+                WHEN "B" THEN 4
+                WHEN "C+" THEN 5
+                WHEN "C" THEN 6
+                WHEN "D" THEN 7
+                WHEN "E" THEN 8
+                WHEN "F" THEN 9
+                ELSE NULL
+            END) as gp,
+            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A+" THEN 1 END), 0) as a_plus_count,
+            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A" THEN 1 END), 0) as a_count,
+            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A-" THEN 1 END), 0) as a_minus_count,
+            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "B+" THEN 1 END), 0) as b_plus_count,
+            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "B" THEN 1 END), 0) as b_count,
+            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "C+" THEN 1 END), 0) as c_plus_count,
+            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "C" THEN 1 END), 0) as c_count,
+            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "D" THEN 1 END), 0) as d_count,
+            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "E" THEN 1 END), 0) as e_count,
+            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "G" THEN 1 END), 0) as g_count,
+            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "TH" THEN 1 END), 0) as th_count,
+            /* Add pass_percentage calculation in SQL */
+            ROUND(
+                (COUNT(CASE WHEN UPPER(tov_g) IN ("A+", "A", "A-", "B+", "B", "C+", "C", "D") THEN 1 END) * 100.0) /
+                NULLIF(COUNT(CASE WHEN UPPER(tov_g) IS NOT NULL AND UPPER(tov_g) NOT IN ("TH") THEN 1 END), 0),
+                1
+            ) as pass_percentage
+        ')
+        ->groupBy('form', 'class', 'subject', 'year');
+}
 }
