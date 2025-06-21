@@ -19,14 +19,13 @@ class ClassesResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
     protected static ?string $navigationLabel = 'Class Performance';
     protected static ?string $modelLabel = 'Class Performance';
-    //protected static ?string $navigationGroup = 'Academic';
+    protected static ?string $navigationGroup = 'Academic';
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                // Add form fields if needed
-            ]);
+        return $form->schema([
+            // Form fields if needed
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -127,18 +126,19 @@ class ClassesResource extends Resource
                     ->searchable(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                // Remove ViewAction if not needed
+                // Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                // Remove if not needed
+                // Tables\Actions\BulkActionGroup::make([
+                //     Tables\Actions\DeleteBulkAction::make(),
+                // ]),
             ])
             ->defaultSort('year', 'desc')
             ->deferLoading()
             ->persistFiltersInSession()
             ->striped();
-            //->recordKey('id');
     }
 
     public static function getWidgets(): array
@@ -152,8 +152,9 @@ class ClassesResource extends Resource
     {
         return [
             'index' => Pages\ListClasses::route('/'),
-            'create' => Pages\CreateClasses::route('/create'),
-            'view' => Pages\ViewClasses::route('/{record}'),
+            // Remove these if not needed
+            // 'create' => Pages\CreateClasses::route('/create'),
+            // 'view' => Pages\ViewClasses::route('/{record}'),
         ];
     }
 
