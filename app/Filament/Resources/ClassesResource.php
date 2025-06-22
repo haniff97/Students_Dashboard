@@ -19,7 +19,7 @@ class ClassesResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
     protected static ?string $navigationLabel = 'Class Performance';
     protected static ?string $modelLabel = 'Class Performance';
-    protected static ?string $navigationGroup = 'Academic';
+    //protected static ?string $navigationGroup = 'Academic';
 
     public static function form(Form $form): Form
     {
