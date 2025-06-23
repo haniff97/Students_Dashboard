@@ -13,6 +13,7 @@ class ListClasses extends ListRecords
     {
         return [
             ClassesResource\Widgets\GpmpOverview::class,
+            ClassesResource\Widgets\ClassPerformanceCharts::class,
         ];
     }
 }

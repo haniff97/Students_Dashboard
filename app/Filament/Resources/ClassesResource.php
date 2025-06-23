@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ClassesResource\Pages;
+use App\Filament\Resources\ClassesResource\Widgets\ClassPerformanceCharts;
 use App\Filament\Resources\ClassesResource\Widgets\GpmpOverview;
 use App\Models\Students;
 use Filament\Forms\Form;
@@ -12,6 +13,7 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 class ClassesResource extends Resource
 {
@@ -19,7 +21,6 @@ class ClassesResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
     protected static ?string $navigationLabel = 'Class Performance';
     protected static ?string $modelLabel = 'Class Performance';
-    //protected static ?string $navigationGroup = 'Academic';
 
     public static function form(Form $form): Form
     {
@@ -78,7 +79,6 @@ class ClassesResource extends Resource
                 self::gradeColumn('g_count', 'G'),
                 self::gradeColumn('th_count', 'TH'),
                 
-                
                 TextColumn::make('avg_gp')
                     ->label('Avg GP')
                     ->numeric(decimalPlaces: 2)
@@ -89,7 +89,6 @@ class ClassesResource extends Resource
                     )
                     ->sortable(),
                 
-                                // Pass Percentage Column
                 TextColumn::make('pass_percentage')
                     ->label('Pass %')
                     ->numeric(decimalPlaces: 1)
@@ -114,6 +113,17 @@ class ClassesResource extends Resource
                     })
                     ->sortable(),
 
+                // Additional metric
+                TextColumn::make('top_percent')
+                    ->label('Top Students %')
+                    ->numeric(decimalPlaces: 1)
+                    ->suffix('%')
+                    ->state(function ($record) {
+                        $topStudents = $record->a_plus_count + $record->a_count + $record->a_minus_count;
+                        return $record->attended_students > 0 
+                            ? round(($topStudents / $record->attended_students) * 100, 1)
+                            : 0;
+                    }),
             ])
             ->filters([
                 SelectFilter::make('year')
@@ -164,6 +174,7 @@ class ClassesResource extends Resource
     {
         return [
             GpmpOverview::class,
+            ClassPerformanceCharts::class,
         ];
     }
 
@@ -230,7 +241,6 @@ public static function getEloquentQuery(): Builder
             COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "E" THEN 1 END), 0) as e_count,
             COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "G" THEN 1 END), 0) as g_count,
             COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "TH" THEN 1 END), 0) as th_count,
-            /* Add pass_percentage calculation in SQL */
             ROUND(
                 (COUNT(CASE WHEN UPPER(tov_g) IN ("A+", "A", "A-", "B+", "B", "C+", "C", "D") THEN 1 END) * 100.0) /
                 NULLIF(COUNT(CASE WHEN UPPER(tov_g) IS NOT NULL AND UPPER(tov_g) NOT IN ("TH") THEN 1 END), 0),
