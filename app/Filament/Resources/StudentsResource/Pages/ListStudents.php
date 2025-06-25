@@ -2,17 +2,9 @@
 
 namespace App\Filament\Resources\StudentsResource\Pages;
 
-use App\Filament\Exports\StudentsExporter;
-use App\Filament\Imports\StudentImporter;
 use App\Filament\Resources\StudentsResource;
 use Filament\Actions;
-use App\Filament\Resources\StudentsResource\Widgets\BlogPostsChart;
-use Filament\Actions\ExportAction;
-use Filament\Actions\Exports\Enums\ExportFormat;
-use Filament\Actions\ImportAction;
-use Filament\Actions\Imports\Enums\ImportFormat;
 use Filament\Resources\Pages\ListRecords;
-
 
 class ListStudents extends ListRecords
 {
@@ -22,29 +14,19 @@ class ListStudents extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
-
-            ExportAction::make()
-                ->button()
-                ->color('primary')
-                ->outlined()
-                ->exporter(StudentsExporter::class)
-                ->formats([
-                    ExportFormat::Csv,
-                ]),
-
-            ImportAction::make()
-                ->button()
-                ->color('primary')
-                ->outlined()
-                ->importer(StudentImporter::class)
-               
+            Actions\ImportAction::make()
+                ->importer(\App\Filament\Imports\StudentImporter::class)
+                ->chunkSize(500), // Process imports in chunks
+            Actions\ExportAction::make()
+                ->exporter(\App\Filament\Exports\StudentsExporter::class)
+                ->chunkSize(500), // Process exports in chunks
         ];
     }
+
     protected function getHeaderWidgets(): array
     {
         return [
-            BlogPostsChart::class,
+            \App\Filament\Resources\StudentsResource\Widgets\BlogPostsChart::class,
         ];
     }
-    
 }

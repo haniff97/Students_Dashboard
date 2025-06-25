@@ -2,12 +2,10 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Imports\StudentImporter;
 use App\Filament\Resources\StudentsResource\Pages;
+use App\Filament\Resources\StudentsResource\Widgets\BlogPostsChart;
 use App\Models\Students;
-use Filament\Actions\ImportAction;
 use Filament\Forms;
-use Filament\Forms\Components\Builder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -17,18 +15,20 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use App\Filament\Resources\StudentsResource\Widgets\BlogPostsChart;
+
 class StudentsResource extends Resource
 {
     protected static ?string $model = Students::class;
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+    
     public static function getNavigationLabel(): string
     {
         return 'Student Performances'; 
     }
+
     public static function form(Form $form): Form
     {
-        return $form /// dekat create student screen
+        return $form
             ->schema([
                 TextInput::make('name')->required(),
                 TextInput::make('class')->required(),
@@ -57,17 +57,19 @@ class StudentsResource extends Resource
                 TextInput::make('year')->numeric(),
             ]);
     }
+
     public static function getWidgets(): array
     {
         return [
             BlogPostsChart::class,
         ];
     }
-    public static function table(Table $table): Table    // dekat list student, columnh
+
+    public static function table(Table $table): Table
     {
         return $table
             ->columns([
-            TextColumn::make('name')
+                            TextColumn::make('name')
                 ->label('Student')
                 ->action(function ($record, $livewire) {
                     $livewire->dispatch('student-selected', studentId: $record->id);
@@ -75,10 +77,15 @@ class StudentsResource extends Resource
                 ->extraAttributes([
                     'class' => 'cursor-pointer text-primary-600 hover:underline',
                 ]),
-
-                TextColumn::make('class'),
-                TextColumn::make('form'),
-                TextColumn::make('subject'),
+                TextColumn::make('class')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('form')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('subject')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('tov_m')->label('TOV (M)'),
                 TextColumn::make('tov_g')->label('TOV (G)'),
                 TextColumn::make('pa1_m')->label('PA1 (M)'),
@@ -90,81 +97,63 @@ class StudentsResource extends Resource
                 TextColumn::make('etr_m')->label('ETR (M)'),
                 TextColumn::make('etr_g')->label('ETR (G)'),
                 TextColumn::make('year')
+                    ->sortable(),
             ])
-->filters([
-    SelectFilter::make('year')
-        ->label('Year')
-        ->options(Students::query()->distinct()->pluck('year', 'year')->toArray())
-        ->searchable(),
-
-    SelectFilter::make('subject')
-        ->label('Subject')
-        ->options(Students::query()->distinct()->pluck('subject', 'subject')->toArray())
-        ->searchable(),
-
-    Filter::make('form_and_class')
-        ->label('Form & Class')
-        ->form([
-            Select::make('form')
-                ->label('Form')
-                ->options(
-                    Students::query()
-                        ->whereNotNull('form')
-                        ->where('form', '!=', '')
-                        ->select('form')
+            ->filters([
+                SelectFilter::make('year')
+                    ->options(fn() => Students::query()
+                        ->select('year')
                         ->distinct()
-                        ->orderBy('form')
-                        ->pluck('form', 'form')
-                        ->toArray()
-                )
-                ->reactive(),
-
-            Select::make('class')
-                ->label('Class')
-                ->options(function (callable $get) {
-                    $form = $get('form');
-                    if (!$form) return [];
-
-                    return Students::query()
-                        ->where('form', $form)
-                        ->whereNotNull('class')
-                        ->where('class', '!=', '')
-                        ->select('class')
+                        ->orderBy('year', 'desc')
+                        ->pluck('year', 'year')
+                        ->toArray())
+                    ->searchable(),
+                SelectFilter::make('subject')
+                    ->options(fn() => Students::query()
+                        ->select('subject')
                         ->distinct()
-                        ->orderBy('class')
-                        ->pluck('class', 'class')
-                        ->toArray();
-                }),
-        ])
-        ->query(function ($query, array $data) {
-            return $query
-                ->when($data['form'], fn ($q) => $q->where('form', $data['form']))
-                ->when($data['class'], fn ($q) => $q->where('class', $data['class']));
-        }),
-
-    ])
-
+                        ->orderBy('subject')
+                        ->pluck('subject', 'subject')
+                        ->toArray())
+                    ->searchable(),
+                Filter::make('form_and_class')
+                    ->form([
+                        Select::make('form')
+                            ->options(fn() => Students::query()
+                                ->select('form')
+                                ->distinct()
+                                ->orderBy('form')
+                                ->pluck('form', 'form')
+                                ->toArray()),
+                        Select::make('class')
+                            ->options(function (callable $get) {
+                                $form = $get('form');
+                                return $form ? Students::query()
+                                    ->where('form', $form)
+                                    ->select('class')
+                                    ->distinct()
+                                    ->orderBy('class')
+                                    ->pluck('class', 'class')
+                                    ->toArray() : [];
+                            }),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['form'], fn($q) => $q->where('form', $data['form']))
+                            ->when($data['class'], fn($q) => $q->where('class', $data['class']));
+                    }),
+            ])
             ->actions([
-                Tables\Actions\Action::make('viewChart')
-                ->label('View Chart')
-                ->icon('heroicon-o-chart-bar')
-                ->action(fn ($record) => $this->dispatchBrowserEvent('student-selected', ['id' => $record->id]))
-
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
-            
-            
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
+            ])
+            ->deferLoading()
+            ->paginated([10, 25, 50, 100,1500]);
     }
 
     public static function getPages(): array
@@ -173,19 +162,6 @@ class StudentsResource extends Resource
             'index' => Pages\ListStudents::route('/'),
             'create' => Pages\CreateStudents::route('/create'),
             'edit' => Pages\EditStudents::route('/{record}/edit'),
-            // No import route needed in Filament v3
         ];
     }
-
-    public static function getHeaderActions(): array
-    {
-        return [
-            ImportAction::make()
-                ->importer(StudentImporter::class)
-                ->label('Import Students')
-                ->color('primary')
-                ->icon('heroicon-o-arrow-up-tray'),
-        ];
-    }
-
 }

@@ -7,160 +7,233 @@ use App\Models\Grade;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
+use Illuminate\Support\Facades\Log;
 
 class StudentImporter extends Importer
 {
     protected static ?string $model = Students::class;
-
     protected static bool $skipImportLogging = true;
+
+    // Set chunk size for processing
+    protected static int $chunkSize = 500;
 
     public static function getColumns(): array
     {
         return [
-            ImportColumn::make('name')->requiredMapping()->rules(['required', 'max:255']),
-            ImportColumn::make('class')->requiredMapping()->rules(['required', 'max:255']),
-            ImportColumn::make('form')->requiredMapping()->numeric()->rules(['required', 'integer', 'min:1', 'max:5']),
-            ImportColumn::make('subject')->requiredMapping()->rules(['required', 'max:255']),
-            ImportColumn::make('pa1_m')->requiredMapping()->numeric()->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-            ImportColumn::make('pa1_g')->requiredMapping()->rules(['nullable', 'max:11']),
-            ImportColumn::make('ppt_m')->requiredMapping()->numeric()->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-            ImportColumn::make('ppt_g')->requiredMapping()->rules(['nullable', 'max:11']),
-            ImportColumn::make('uasa_m')->requiredMapping()->numeric()->rules(['nullable', 'numeric', 'min:0', 'max:100']),
-            ImportColumn::make('uasa_g')->requiredMapping()->rules(['nullable', 'max:11']),
-            ImportColumn::make('year')->requiredMapping()->numeric()->rules(['nullable', 'integer']),
+            ImportColumn::make('name')
+                ->requiredMapping()
+                ->rules(['required', 'max:255'])
+                ->example('John Doe'),
+                
+            ImportColumn::make('class')
+                ->requiredMapping()
+                ->rules(['required', 'max:255'])
+                ->example('5A'),
+                
+            ImportColumn::make('form')
+                ->requiredMapping()
+                ->numeric()
+                ->rules(['required', 'integer', 'min:1', 'max:5'])
+                ->example(5),
+                
+            ImportColumn::make('subject')
+                ->requiredMapping()
+                ->rules(['required', 'max:255'])
+                ->example('Mathematics'),
+                
+            ImportColumn::make('pa1_m')
+                ->numeric()
+                ->rules(['nullable', 'numeric', 'min:0', 'max:100'])
+                ->example(85),
+                
+            ImportColumn::make('pa1_g')
+                ->rules(['nullable', 'max:2'])
+                ->example('A'),
+                
+            ImportColumn::make('ppt_m')
+                ->numeric()
+                ->rules(['nullable', 'numeric', 'min:0', 'max:100'])
+                ->example(78),
+                
+            ImportColumn::make('ppt_g')
+                ->rules(['nullable', 'max:2'])
+                ->example('B+'),
+                
+            ImportColumn::make('uasa_m')
+                ->numeric()
+                ->rules(['nullable', 'numeric', 'min:0', 'max:100'])
+                ->example(92),
+                
+            ImportColumn::make('uasa_g')
+                ->rules(['nullable', 'max:2'])
+                ->example('A+'),
+                
+            ImportColumn::make('year')
+                ->numeric()
+                ->rules(['nullable', 'integer', 'min:2000', 'max:2100'])
+                ->example(2023),
         ];
     }
 
     public function resolveRecord(): ?Students
     {
+        // Temporarily increase memory limit for this operation
+        $originalMemoryLimit = ini_get('memory_limit');
+        ini_set('memory_limit', '512M');
+
         try {
             $student = Students::updateOrCreate(
-                [
-                    'name' => $this->data['name'],
-                    'class' => $this->data['class'],
-                    'form' => $this->data['form'],
-                    'subject' => $this->data['subject'],
-                    'year' => $this->data['year'],
-                ],
-                [
-                    'pa1_m' => $this->data['pa1_m'] ?? null,
-                    'pa1_g' => $this->data['pa1_g'] ?? null,
-                    'ppt_m' => $this->data['ppt_m'] ?? null,
-                    'ppt_g' => $this->data['ppt_g'] ?? null,
-                    'uasa_m' => $this->data['uasa_m'] ?? null,
-                    'uasa_g' => $this->data['uasa_g'] ?? null,
-                ]
+                $this->getMatchAttributes(),
+                $this->getUpdateAttributes()
             );
 
-            $this->calculateETR($student);
-            $this->calculateTOV($student);
+            $this->processStudentCalculations($student);
 
             return $student;
         } catch (\Exception $e) {
-            \Log::error('Failed importing student: ' . $e->getMessage());
-            throw $e;
+            Log::error("Failed to import student: {$e->getMessage()}");
+            return null;
+        } finally {
+            ini_set('memory_limit', $originalMemoryLimit);
+            gc_collect_cycles();
         }
     }
 
-    private function calculateETR(Students $student): void
+    protected function getMatchAttributes(): array
     {
-        $grades = Grade::orderBy('min_mark')->get();
-
-        $latestMark = null;
-        $latestGrade = null;
-
-        if (!empty($student->uasa_m) && strtoupper(trim($student->uasa_g)) !== 'TH') {
-            $latestMark = $student->uasa_m;
-            $latestGrade = strtoupper(trim($student->uasa_g));
-        } elseif (!empty($student->ppt_m) && strtoupper(trim($student->ppt_g)) !== 'TH') {
-            $latestMark = $student->ppt_m;
-            $latestGrade = strtoupper(trim($student->ppt_g));
-        } elseif (!empty($student->pa1_m) && strtoupper(trim($student->pa1_g)) !== 'TH') {
-            $latestMark = $student->pa1_m;
-            $latestGrade = strtoupper(trim($student->pa1_g));
-        }
-
-        if ($latestMark === null || !$latestGrade) {
-            return;
-        }
-
-        $current = $grades->firstWhere('grade', $latestGrade);
-        if (!$current) {
-            return;
-        }
-
-        $next = $grades->filter(fn($g) => $g->min_mark > $current->min_mark)->first();
-
-        if (!$next) {
-            $student->etr_m = $latestMark;
-            $student->etr_g = $latestGrade;
-        } else {
-            $student->etr_m = $next->min_mark;
-            $student->etr_g = $next->grade;
-        }
-
-        $student->save();
+        return [
+            'name' => $this->data['name'],
+            'class' => $this->data['class'],
+            'form' => $this->data['form'],
+            'subject' => $this->data['subject'],
+            'year' => $this->data['year'] ?? null,
+        ];
     }
 
-    private function calculateTOV(Students $student): void
+    protected function getUpdateAttributes(): array
     {
-        $previousYear = $student->year - 1;
-        $previousForm = is_numeric($student->form) && $student->form > 1 ? $student->form - 1 : null;
+        return [
+            'pa1_m' => $this->data['pa1_m'] ?? null,
+            'pa1_g' => $this->data['pa1_g'] ?? null,
+            'ppt_m' => $this->data['ppt_m'] ?? null,
+            'ppt_g' => $this->data['ppt_g'] ?? null,
+            'uasa_m' => $this->data['uasa_m'] ?? null,
+            'uasa_g' => $this->data['uasa_g'] ?? null,
+        ];
+    }
 
-        if ($previousForm === null) {
-            \Log::info("Invalid form for student: {$student->name}, form: {$student->form}");
-            return;
+    protected function processStudentCalculations(Students $student): void
+    {
+        if (memory_get_usage(true) > 100 * 1024 * 1024) { // 100MB
+            Log::warning('High memory usage during student calculations');
+            gc_collect_cycles();
         }
 
-        $lastYear = Students::whereRaw('LOWER(name) = ?', [strtolower(trim($student->name))])
-            ->whereRaw('LOWER(class) = ?', [strtolower(trim($student->class))])
-            ->where('form', $previousForm)
-            ->whereRaw('LOWER(subject) = ?', [strtolower(trim($student->subject))])
-            ->where('year', $previousYear)
-            ->first();
+        $this->calculateETR($student);
+        $this->calculateTOV($student);
+    }
 
-        if (!$lastYear) {
-            \Log::info("No previous year record for student: {$student->name}, class: {$student->class}, form: {$previousForm}, subject: {$student->subject}, year: {$previousYear}");
-            return;
-        }
+    protected function calculateETR(Students $student): void
+    {
+        try {
+            $grades = Grade::orderBy('min_mark')->get();
+            $latestMark = null;
+            $latestGrade = null;
 
-        // Prioritize uasa_m and uasa_g, even if uasa_g is TH
-        $latestMark = $lastYear->uasa_m; // Use uasa_m if it exists
-        $latestGrade = strtoupper(trim($lastYear->uasa_g)); // Use uasa_g regardless of value
+            // Determine the latest valid assessment
+            foreach (['uasa', 'ppt', 'pa1'] as $assessment) {
+                $markField = "{$assessment}_m";
+                $gradeField = "{$assessment}_g";
 
-        // Fall back to ppt_m/ppt_g or pa1_m/pa1_g only if uasa_m is null
-        if ($latestMark === null) {
-            if (!empty($lastYear->ppt_m)) {
-                $latestMark = $lastYear->ppt_m;
-                $latestGrade = strtoupper(trim($lastYear->ppt_g));
-            } elseif (!empty($lastYear->pa1_m)) {
-                $latestMark = $lastYear->pa1_m;
-                $latestGrade = strtoupper(trim($lastYear->pa1_g));
+                if ($student->$markField && $student->$gradeField !== 'TH') {
+                    $latestMark = $student->$markField;
+                    $latestGrade = strtoupper(trim($student->$gradeField));
+                    break;
+                }
             }
-        }
 
-        if ($latestMark === null || !$latestGrade) {
-            \Log::info("No valid mark/grade for student: {$student->name}, uasa_m={$lastYear->uasa_m}, uasa_g={$lastYear->uasa_g}, ppt_m={$lastYear->ppt_m}, ppt_g={$lastYear->ppt_g}, pa1_m={$lastYear->pa1_m}, pa1_g={$lastYear->pa1_g}");
-            return;
-        }
+            if (!$latestMark || !$latestGrade) {
+                return;
+            }
 
-        $student->tov_m = $latestMark;
-        $student->tov_g = $latestGrade;
-        if (!$student->save()) {
-            \Log::error("Failed to save TOV for student: {$student->name}, tov_m: {$latestMark}, tov_g: {$latestGrade}");
-        } else {
-            \Log::info("Saved TOV for student: {$student->name}, tov_m: {$latestMark}, tov_g: {$latestGrade}");
+            $currentGrade = $grades->firstWhere('grade', $latestGrade);
+            if (!$currentGrade) {
+                Log::warning("Invalid grade '{$latestGrade}' for student {$student->id}");
+                return;
+            }
+
+            $nextGrade = $grades->firstWhere('min_mark', '>', $currentGrade->min_mark);
+
+            if ($nextGrade) {
+                $student->etr_m = $nextGrade->min_mark;
+                $student->etr_g = $nextGrade->grade;
+            } else {
+                $student->etr_m = $latestMark;
+                $student->etr_g = $currentGrade->grade;
+            }
+
+            $student->save();
+        } catch (\Exception $e) {
+            Log::error("ETR calculation failed for student {$student->id}: {$e->getMessage()}");
+        }
+    }
+
+    protected function calculateTOV(Students $student): void
+    {
+        try {
+            if (!$student->year || !$student->form) {
+                Log::warning("Missing year or form for student {$student->id}");
+                return;
+            }
+
+            $previousYear = $student->year - 1;
+            $previousForm = $student->form > 1 ? $student->form - 1 : null;
+
+            if (!$previousForm) {
+                return;
+            }
+
+            $previousStudent = Students::where('name', $student->name)
+                ->where('class', $student->class)
+                ->where('form', $previousForm)
+                ->where('subject', $student->subject)
+                ->where('year', $previousYear)
+                ->first();
+
+            if (!$previousStudent) {
+                return;
+            }
+
+            // Get the latest valid assessment from previous year
+            foreach (['uasa', 'ppt', 'pa1'] as $assessment) {
+                $markField = "{$assessment}_m";
+                $gradeField = "{$assessment}_g";
+
+                if ($previousStudent->$markField) {
+                    $student->tov_m = $previousStudent->$markField;
+                    $student->tov_g = $previousStudent->$gradeField;
+                    $student->save();
+                    break;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("TOV calculation failed for student {$student->id}: {$e->getMessage()}");
         }
     }
 
     public static function getCompletedNotificationBody(Import $import): string
     {
-        $body = 'Your student import has completed and ' . number_format($import->successful_rows) . ' ' . str('row')->plural($import->successful_rows) . ' imported.';
+        $body = 'Student import completed. ' . number_format($import->successful_rows) . ' ' . str('row')->plural($import->successful_rows) . ' imported.';
 
         if ($failedRowsCount = $import->getFailedRowsCount()) {
             $body .= ' ' . number_format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' failed to import.';
         }
 
         return $body;
+    }
+
+    public static function getChunkSize(): int
+    {
+        return static::$chunkSize;
     }
 }
