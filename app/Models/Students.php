@@ -38,4 +38,6 @@ class Students extends Model
         'form' => 'integer',
     ];
 
+    // Enable timestamps
+    public $timestamps = true;
 }
