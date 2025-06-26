@@ -7,7 +7,7 @@ use Filament\Widgets\ChartWidget;
 use Livewire\Attributes\On;
 
 class BlogPostsChart extends ChartWidget
-{
+{//
     protected static ?string $heading = 'Carta Prestasi Pelajar';
     protected static ?string $maxHeight = '300px';
 
