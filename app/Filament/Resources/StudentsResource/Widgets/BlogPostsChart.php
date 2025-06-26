@@ -12,7 +12,7 @@ class BlogPostsChart extends ChartWidget
     protected static ?string $maxHeight = '300px';
 
     public ?int $studentId = null;
-
+ 
     #[On('student-selected')]
     public function updateStudent($studentId)
     {
