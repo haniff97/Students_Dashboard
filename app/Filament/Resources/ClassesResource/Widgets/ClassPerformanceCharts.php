@@ -9,108 +9,115 @@ use Illuminate\Database\Eloquent\Builder;
 class ClassPerformanceCharts extends ChartWidget
 {
     protected static ?string $heading = 'Grade Distribution';
-    protected static ?string $pollingInterval = '15s';
+    protected static ?string $pollingInterval = null; // Disable polling for immediate updates
     protected static ?string $maxHeight = '300px';
 
-    protected $listeners = ['tableFilterUpdated' => 'updateChart'];
+    public $filters = [];
 
-    public function updateChart(): void
+    protected $listeners = ['filtersUpdated' => 'updateFilters'];
+
+    public function updateFilters($filters): void
     {
-        $this->emitSelf('updateChartData');
+        $this->filters = $filters;
+        $this->dispatch('updateChartData');
     }
 
     protected function getData(): array
     {
-        // Get active filters from the page
-        $activeFilters = $this->getActiveFilters();
-        
+        // Build the query with applied filters
         $query = Students::query()
-            ->when($activeFilters['year'] ?? null, fn($q, $year) => $q->where('year', $year))
-            ->when($activeFilters['class'] ?? null, fn($q, $class) => $q->where('class', $class))
-            ->when($activeFilters['form'] ?? null, fn($q, $form) => $q->where('form', $form))
-            ->when($activeFilters['subject'] ?? null, fn($q, $subject) => $q->where('subject', $subject));
+            ->when(
+                isset($this->filters['year']['value']) && $this->filters['year']['value'],
+                fn($q) => $q->where('year', $this->filters['year']['value'])
+            )
+            ->when(
+                isset($this->filters['class']['value']) && $this->filters['class']['value'],
+                fn($q) => $q->where('class', $this->filters['class']['value'])
+            )
+            ->when(
+                isset($this->filters['form']['value']) && $this->filters['form']['value'],
+                fn($q) => $q->where('form', $this->filters['form']['value'])
+            )
+            ->when(
+                isset($this->filters['subject']['value']) && $this->filters['subject']['value'],
+                fn($q) => $q->where('subject', $this->filters['subject']['value'])
+            );
 
-        // For large datasets, use optimized counting
+        // Count grades
         $gradeCounts = $this->countGrades($query);
 
         return [
             'labels' => ['A+', 'A', 'A-', 'B+', 'B', 'C+', 'C', 'D', 'E', 'G', 'TH'],
-            'datasets' => [[
-                'label' => 'Grade Distribution',
-                'data' => [
-                    $gradeCounts['A+'] ?? 0,
-                    $gradeCounts['A'] ?? 0,
-                    $gradeCounts['A-'] ?? 0,
-                    $gradeCounts['B+'] ?? 0,
-                    $gradeCounts['B'] ?? 0,
-                    $gradeCounts['C+'] ?? 0,
-                    $gradeCounts['C'] ?? 0,
-                    $gradeCounts['D'] ?? 0,
-                    $gradeCounts['E'] ?? 0,
-                    $gradeCounts['G'] ?? 0,
-                    $gradeCounts['TH'] ?? 0,
-                ],
-                'backgroundColor' => [
-                    '#10B981', '#34D399', '#6EE7B7', // Greens
-                    '#60A5FA', '#3B82F6',           // Blues
-                    '#F59E0B', '#FBBF24',           // Yellows
-                    '#EF4444', '#DC2626', '#991B1B', // Reds
-                    '#9CA3AF',                      // Gray
-                ],
-                'borderColor' => '#ffffff',
-                'borderWidth' => 1
-            ]]
+            'datasets' => [
+                [
+                    'label' => 'Grade Distribution',
+                    'data' => [
+                        $gradeCounts['A+'] ?? 0,
+                        $gradeCounts['A'] ?? 0,
+                        $gradeCounts['A-'] ?? 0,
+                        $gradeCounts['B+'] ?? 0,
+                        $gradeCounts['B'] ?? 0,
+                        $gradeCounts['C+'] ?? 0,
+                        $gradeCounts['C'] ?? 0,
+                        $gradeCounts['D'] ?? 0,
+                        $gradeCounts['E'] ?? 0,
+                        $gradeCounts['G'] ?? 0,
+                        $gradeCounts['TH'] ?? 0,
+                    ],
+                    'backgroundColor' => [
+                        '#10B981', '#34D399', '#6EE7B7', // Greens for A+, A, A-
+                        '#60A5FA', '#3B82F6',           // Blues for B+, B
+                        '#F59E0B', '#FBBF24',           // Yellows for C+, C
+                        '#EF4444', '#DC2626', '#991B1B', // Reds for D, E, G
+                        '#9CA3AF',                      // Gray for TH
+                    ],
+                    'borderColor' => '#ffffff',
+                    'borderWidth' => 1
+                ]
+            ]
         ];
     }
 
     protected function countGrades(Builder $query): array
     {
-        // For small datasets (<5000 records)
-        if ($query->count() < 5000) {
-            return $query->selectRaw('
-                COUNT(CASE WHEN UPPER(tov_g) = "A+" THEN 1 END) as "A+",
-                COUNT(CASE WHEN UPPER(tov_g) = "A" THEN 1 END) as "A",
-                COUNT(CASE WHEN UPPER(tov_g) = "A-" THEN 1 END) as "A-",
-                COUNT(CASE WHEN UPPER(tov_g) = "B+" THEN 1 END) as "B+",
-                COUNT(CASE WHEN UPPER(tov_g) = "B" THEN 1 END) as "B",
-                COUNT(CASE WHEN UPPER(tov_g) = "C+" THEN 1 END) as "C+",
-                COUNT(CASE WHEN UPPER(tov_g) = "C" THEN 1 END) as "C",
-                COUNT(CASE WHEN UPPER(tov_g) = "D" THEN 1 END) as "D",
-                COUNT(CASE WHEN UPPER(tov_g) = "E" THEN 1 END) as "E",
-                COUNT(CASE WHEN UPPER(tov_g) = "G" THEN 1 END) as "G",
-                COUNT(CASE WHEN UPPER(tov_g) = "TH" THEN 1 END) as "TH"
-            ')->first()->toArray();
-        }
-
-        // For large datasets - process in chunks
-        $grades = [
-            'A+' => 0, 'A' => 0, 'A-' => 0,
-            'B+' => 0, 'B' => 0,
-            'C+' => 0, 'C' => 0,
-            'D' => 0, 'E' => 0, 'G' => 0,
-            'TH' => 0
-        ];
-
-        $query->select('tov_g')->chunk(2000, function ($students) use (&$grades) {
-            foreach ($students as $student) {
-                $grade = strtoupper($student->tov_g);
-                if (isset($grades[$grade])) {
-                    $grades[$grade]++;
-                }
+        // Cache the query results to improve performance
+        $cacheKey = 'grade_counts_' . md5($query->toSql() . serialize($query->getBindings()));
+        return cache()->remember($cacheKey, now()->addMinutes(5), function () use ($query) {
+            if ($query->count() < 5000) {
+                return $query->selectRaw('
+                    COUNT(CASE WHEN UPPER(tov_g) = "A+" THEN 1 END) as "A+",
+                    COUNT(CASE WHEN UPPER(tov_g) = "A" THEN 1 END) as "A",
+                    COUNT(CASE WHEN UPPER(tov_g) = "A-" THEN 1 END) as "A-",
+                    COUNT(CASE WHEN UPPER(tov_g) = "B+" THEN 1 END) as "B+",
+                    COUNT(CASE WHEN UPPER(tov_g) = "B" THEN 1 END) as "B",
+                    COUNT(CASE WHEN UPPER(tov_g) = "C+" THEN 1 END) as "C+",
+                    COUNT(CASE WHEN UPPER(tov_g) = "C" THEN 1 END) as "C",
+                    COUNT(CASE WHEN UPPER(tov_g) = "D" THEN 1 END) as "D",
+                    COUNT(CASE WHEN UPPER(tov_g) = "E" THEN 1 END) as "E",
+                    COUNT(CASE WHEN UPPER(tov_g) = "G" THEN 1 END) as "G",
+                    COUNT(CASE WHEN UPPER(tov_g) = "TH" THEN 1 END) as "TH"
+                ')->first()->toArray();
             }
+
+            $grades = [
+                'A+' => 0, 'A' => 0, 'A-' => 0,
+                'B+' => 0, 'B' => 0,
+                'C+' => 0, 'C' => 0,
+                'D' => 0, 'E' => 0, 'G' => 0,
+                'TH' => 0
+            ];
+
+            $query->select('tov_g')->chunk(2000, function ($students) use (&$grades) {
+                foreach ($students as $student) {
+                    $grade = strtoupper($student->tov_g);
+                    if (isset($grades[$grade])) {
+                        $grades[$grade]++;
+                    }
+                }
+            });
+
+            return $grades;
         });
-
-        return $grades;
-    }
-
-    protected function getActiveFilters(): array
-    {
-        return [
-            'year' => request()->input('tableFilters.year.value'),
-            'class' => request()->input('tableFilters.class.value'),
-            'form' => request()->input('tableFilters.form.value'),
-            'subject' => request()->input('tableFilters.subject.value'),
-        ];
     }
 
     protected function getType(): string

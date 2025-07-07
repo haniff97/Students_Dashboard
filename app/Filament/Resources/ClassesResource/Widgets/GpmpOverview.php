@@ -5,16 +5,23 @@ namespace App\Filament\Resources\ClassesResource\Widgets;
 use App\Models\Students;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\Session;
 
 class GpmpOverview extends BaseWidget
 {
-    protected static ?string $pollingInterval = '10s';
+    protected static ?string $pollingInterval = null; // Disable polling for immediate updates
+
+    public $filters = [];
+
+    protected $listeners = ['filtersUpdated' => 'updateFilters'];
+
+    public function updateFilters($filters): void
+    {
+        $this->filters = $filters;
+    }
 
     protected function getStats(): array
     {
-        $filters = Session::get('table-filters.' . Students::class, []);
-        
+        // Build the query with applied filters
         $query = Students::query()
             ->selectRaw('
                 SUM(CASE UPPER(tov_g)
@@ -32,29 +39,36 @@ class GpmpOverview extends BaseWidget
                 END) as total_gp,
                 COUNT(CASE WHEN UPPER(tov_g) IS NOT NULL AND UPPER(tov_g) NOT IN ("TH") THEN 1 END) as attended_students
             ')
-            ->when(!empty($filters['year']['value']), function ($query) use ($filters) {
-                $query->where('year', $filters['year']['value']);
-            })
-            ->when(!empty($filters['class']['value']), function ($query) use ($filters) {
-                $query->where('class', $filters['class']['value']);
-            })
-            ->when(!empty($filters['form']['value']), function ($query) use ($filters) {
-                $query->where('form', $filters['form']['value']);
-            })
-            ->when(!empty($filters['subject']['value']), function ($query) use ($filters) {
-                $query->where('subject', $filters['subject']['value']);
-            })
-            ->first();
+            ->when(
+                isset($this->filters['year']['value']) && $this->filters['year']['value'],
+                fn($q) => $q->where('year', $this->filters['year']['value'])
+            )
+            ->when(
+                isset($this->filters['class']['value']) && $this->filters['class']['value'],
+                fn($q) => $q->where('class', $this->filters['class']['value'])
+            )
+            ->when(
+                isset($this->filters['form']['value']) && $this->filters['form']['value'],
+                fn($q) => $q->where('form', $this->filters['form']['value'])
+            )
+            ->when(
+                isset($this->filters['subject']['value']) && $this->filters['subject']['value'],
+                fn($q) => $q->where('subject', $this->filters['subject']['value'])
+            );
 
-        $gpmp = $query && $query->attended_students > 0 
-            ? number_format($query->total_gp / $query->attended_students, 2)
+        // Cache the query result
+        $cacheKey = 'gpmp_stats_' . md5($query->toSql() . serialize($query->getBindings()));
+        $result = cache()->remember($cacheKey, now()->addMinutes(5), fn() => $query->first());
+
+        $gpmp = $result && $result->attended_students > 0 
+            ? number_format($result->total_gp / $result->attended_students, 2)
             : 0;
 
         return [
             Stat::make('GPMP', $gpmp)
                 ->description('Grade Point Mean Percentage')
                 ->color($this->getGpmpColor((float)$gpmp))
-                ->chart([7, 2, 10, 3, 15, 4, 17])
+                ->chart([7, 2, 10, 3, 15, 4, 17]) // Sample chart data, replace if needed
                 ->extraAttributes([
                     'class' => 'cursor-pointer hover:bg-gray-50 transition-colors',
                     'title' => 'Lower scores indicate better performance'

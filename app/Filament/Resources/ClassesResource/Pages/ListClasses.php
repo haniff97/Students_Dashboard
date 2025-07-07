@@ -28,4 +28,8 @@ class ListClasses extends ListRecords
                 }),
         ];
     }
+    public function updatedTableFilters(): void
+    {
+        $this->dispatch('filtersUpdated', $this->tableFilters);
+    }
 }
