@@ -26,6 +26,8 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            //->brandName('SMK PUNCAK ALAM 3')
+            ->brandLogo(fn () => view('filament.admin.logo'))
             ->login()
             ->maxContentWidth('full')
             ->colors([
