@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ClassesResource\Pages;
 
 use App\Filament\Resources\ClassesResource;
-use Filament\Pages\Actions\Action;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
 
 class ListClasses extends ListRecords
@@ -24,10 +24,11 @@ class ListClasses extends ListRecords
             Action::make('refresh')
                 ->label('Refresh Data')
                 ->action(function () {
-                    $this->emit('tableFilterUpdated');
+                    $this->dispatch('filtersUpdated', $this->tableFilters);
                 }),
         ];
     }
+
     public function updatedTableFilters(): void
     {
         $this->dispatch('filtersUpdated', $this->tableFilters);
