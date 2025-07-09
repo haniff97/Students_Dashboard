@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ClassesResource\Pages;
 use App\Filament\Resources\ClassesResource\Widgets\ClassPerformanceCharts;
 use App\Filament\Resources\ClassesResource\Widgets\GpmpOverview;
+use App\Filament\Resources\ClassesResource\Widgets\PassPercentageChart;
 use App\Models\Students;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -37,35 +38,28 @@ class ClassesResource extends Resource
                     ->label('Form')
                     ->sortable()
                     ->searchable(),
-                    
                 TextColumn::make('class')
                     ->sortable()
                     ->searchable(),
-                    
                 TextColumn::make('subject')
                     ->sortable()
                     ->searchable(),
-                    
                 TextColumn::make('year')
                     ->label('Year')
                     ->sortable()
                     ->searchable(),
-                    
                 TextColumn::make('total_students')
                     ->label('Total Students')
                     ->numeric()
                     ->sortable(),
-                    
                 TextColumn::make('attended_students')
                     ->label('Attended')
                     ->numeric()
                     ->sortable(),
-                    
                 TextColumn::make('didnt_take_students')
                     ->label('Absent')
                     ->numeric()
                     ->sortable(),
-                    
                 // Grade columns
                 self::gradeColumn('a_plus_count', 'A+'),
                 self::gradeColumn('a_count', 'A'),
@@ -78,7 +72,6 @@ class ClassesResource extends Resource
                 self::gradeColumn('e_count', 'E'),
                 self::gradeColumn('g_count', 'G'),
                 self::gradeColumn('th_count', 'TH'),
-                
                 TextColumn::make('avg_gp')
                     ->label('Avg GP')
                     ->numeric(decimalPlaces: 2)
@@ -88,7 +81,6 @@ class ClassesResource extends Resource
                             : null
                     )
                     ->sortable(),
-                
                 TextColumn::make('pass_percentage')
                     ->label('Pass %')
                     ->numeric(decimalPlaces: 1)
@@ -98,7 +90,6 @@ class ClassesResource extends Resource
                                  $record->b_plus_count + $record->b_count + 
                                  $record->c_plus_count + $record->c_count +
                                  $record->d_count;
-                        
                         return $record->attended_students > 0 
                             ? round(($passed / $record->attended_students) * 100, 1)
                             : 0;
@@ -112,8 +103,6 @@ class ClassesResource extends Resource
                         };
                     })
                     ->sortable(),
-
-                // Additional metric
                 TextColumn::make('top_percent')
                     ->label('Top Students %')
                     ->numeric(decimalPlaces: 1)
@@ -134,7 +123,6 @@ class ClassesResource extends Resource
                             ->pluck('year', 'year')
                     )
                     ->searchable(),
-                    
                 SelectFilter::make('class')
                     ->options(
                         Students::query()
@@ -143,7 +131,6 @@ class ClassesResource extends Resource
                             ->pluck('class', 'class')
                     )
                     ->searchable(),
-                    
                 SelectFilter::make('form')
                     ->options(
                         Students::query()
@@ -152,7 +139,6 @@ class ClassesResource extends Resource
                             ->pluck('form', 'form')
                     )
                     ->searchable(),
-                    
                 SelectFilter::make('subject')
                     ->options(
                         Students::query()
@@ -175,6 +161,7 @@ class ClassesResource extends Resource
         return [
             GpmpOverview::class,
             ClassPerformanceCharts::class,
+            PassPercentageChart::class,
         ];
     }
 
@@ -205,48 +192,48 @@ class ClassesResource extends Resource
         };
     }
 
-public static function getEloquentQuery(): Builder
-{
-    return parent::getEloquentQuery()
-        ->selectRaw('
-            CONCAT(form, "-", class, "-", subject, "-", year) as id,
-            class,
-            form,
-            subject,
-            year,
-            COUNT(*) as total_students,
-            COUNT(CASE WHEN UPPER(tov_g) IS NOT NULL AND UPPER(tov_g) NOT IN ("TH") THEN 1 END) as attended_students,
-            COUNT(CASE WHEN UPPER(tov_g) IN ("TH") OR UPPER(tov_g) IS NULL THEN 1 END) as didnt_take_students,
-            SUM(CASE UPPER(tov_g)
-                WHEN "A+" THEN 0
-                WHEN "A" THEN 1
-                WHEN "A-" THEN 2
-                WHEN "B+" THEN 3
-                WHEN "B" THEN 4
-                WHEN "C+" THEN 5
-                WHEN "C" THEN 6
-                WHEN "D" THEN 7
-                WHEN "E" THEN 8
-                WHEN "F" THEN 9
-                ELSE NULL
-            END) as gp,
-            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A+" THEN 1 END), 0) as a_plus_count,
-            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A" THEN 1 END), 0) as a_count,
-            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A-" THEN 1 END), 0) as a_minus_count,
-            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "B+" THEN 1 END), 0) as b_plus_count,
-            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "B" THEN 1 END), 0) as b_count,
-            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "C+" THEN 1 END), 0) as c_plus_count,
-            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "C" THEN 1 END), 0) as c_count,
-            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "D" THEN 1 END), 0) as d_count,
-            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "E" THEN 1 END), 0) as e_count,
-            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "G" THEN 1 END), 0) as g_count,
-            COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "TH" THEN 1 END), 0) as th_count,
-            ROUND(
-                (COUNT(CASE WHEN UPPER(tov_g) IN ("A+", "A", "A-", "B+", "B", "C+", "C", "D") THEN 1 END) * 100.0) /
-                NULLIF(COUNT(CASE WHEN UPPER(tov_g) IS NOT NULL AND UPPER(tov_g) NOT IN ("TH") THEN 1 END), 0),
-                1
-            ) as pass_percentage
-        ')
-        ->groupBy('form', 'class', 'subject', 'year');
-}
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->selectRaw('
+                CONCAT(form, "-", class, "-", subject, "-", year) as id,
+                class,
+                form,
+                subject,
+                year,
+                COUNT(*) as total_students,
+                COUNT(CASE WHEN UPPER(tov_g) IS NOT NULL AND UPPER(tov_g) NOT IN ("TH") THEN 1 END) as attended_students,
+                COUNT(CASE WHEN UPPER(tov_g) IN ("TH") OR UPPER(tov_g) IS NULL THEN 1 END) as didnt_take_students,
+                SUM(CASE UPPER(tov_g)
+                    WHEN "A+" THEN 0
+                    WHEN "A" THEN 1
+                    WHEN "A-" THEN 2
+                    WHEN "B+" THEN 3
+                    WHEN "B" THEN 4
+                    WHEN "C+" THEN 5
+                    WHEN "C" THEN 6
+                    WHEN "D" THEN 7
+                    WHEN "E" THEN 8
+                    WHEN "F" THEN 9
+                    ELSE NULL
+                END) as gp,
+                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A+" THEN 1 END), 0) as a_plus_count,
+                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A" THEN 1 END), 0) as a_count,
+                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "A-" THEN 1 END), 0) as a_minus_count,
+                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "B+" THEN 1 END), 0) as b_plus_count,
+                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "B" THEN 1 END), 0) as b_count,
+                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "C+" THEN 1 END), 0) as c_plus_count,
+                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "C" THEN 1 END), 0) as c_count,
+                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "D" THEN 1 END), 0) as d_count,
+                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "E" THEN 1 END), 0) as e_count,
+                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "G" THEN 1 END), 0) as g_count,
+                COALESCE(COUNT(CASE WHEN UPPER(tov_g) = "TH" THEN 1 END), 0) as th_count,
+                ROUND(
+                    (COUNT(CASE WHEN UPPER(tov_g) IN ("A+", "A", "A-", "B+", "B", "C+", "C", "D") THEN 1 END) * 100.0) /
+                    NULLIF(COUNT(CASE WHEN UPPER(tov_g) IS NOT NULL AND UPPER(tov_g) NOT IN ("TH") THEN 1 END), 0),
+                    1
+                ) as pass_percentage
+            ')
+            ->groupBy('form', 'class', 'subject', 'year');
+    }
 }
